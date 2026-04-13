@@ -1,5 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
+import { supabase } from "../lib/supabaseClient";
+import { useAuth } from "../context/AuthContext";
 
 const petals = Array.from({ length: 18 }, (_, i) => ({
   id: i,
@@ -13,6 +15,7 @@ const petals = Array.from({ length: 18 }, (_, i) => ({
 export default function LandingPage() {
   const navigate = useNavigate();
   const heroRef = useRef(null);
+  const { getProfileRole } = useAuth();
 
   useEffect(() => {
     const el = heroRef.current;
@@ -373,7 +376,15 @@ export default function LandingPage() {
             Designed for JFS A0 · A1 · A2 learners
           </div>
           <div className="btn-group">
-            <button className="btn-primary" onClick={() => navigate("/login")}>
+            <button className="btn-primary" onClick={async () => {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (session) {
+                const userRole = await getProfileRole(session.user.id);
+                navigate(`/dashboard/${userRole}`);
+              } else {
+                navigate("/login");
+              }
+            }}>
               <span>はじめましょう — Start Learning</span>
             </button>
           </div>

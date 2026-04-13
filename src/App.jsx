@@ -5,8 +5,6 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
-import TestLogin from "./pages/TestLogin";
-import TestSuccess from "./pages/TestSuccess";
 
 export default function App() {
   return (
