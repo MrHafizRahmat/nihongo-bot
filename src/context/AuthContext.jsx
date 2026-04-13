@@ -40,23 +40,19 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function signUp(email, password, role, fullName) {
-    console.log("I am here!");
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { role, full_name: fullName } },
     });
-    console.log("be back soon");
     return { data, error };
   }
 
   async function signIn(email, password) {
-    console.log("I am here!");
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    console.log("be back soon");
     return { data, error };
   }
 

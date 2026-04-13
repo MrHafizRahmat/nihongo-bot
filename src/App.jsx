@@ -15,8 +15,6 @@ export default function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/test-login" element={<TestLogin />} />
-          <Route path="/test-success" element={<TestSuccess />} />
 
           <Route
             path="/dashboard/student"

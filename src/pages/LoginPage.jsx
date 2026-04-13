@@ -27,7 +27,6 @@ export default function LoginPage() {
     setLoading(true);
 
     if (mode === "login") {
-      console.log("loggining");
       const { data, error: signInError } = await signIn(email, password);
       if (signInError) {
         setError(signInError.message === "Invalid login credentials"
@@ -41,7 +40,6 @@ export default function LoginPage() {
       navigate(`/dashboard/${userRole}`);
 
     } else {
-      console.log("signining");
       const { error: signUpError } = await signUp(email, password, role, fullName);
       if (signUpError) {
         setError(signUpError.message);
