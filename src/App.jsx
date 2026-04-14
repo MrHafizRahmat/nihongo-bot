@@ -5,6 +5,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import RegisterStudents from "./pages/RegisterStudents";
 
 export default function App() {
   return (
@@ -28,6 +29,15 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="teacher">
                 <TeacherDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/dashboard/teacher/register"
+            element={
+              <ProtectedRoute requiredRole="teacher">
+                <RegisterStudents />
               </ProtectedRoute>
             }
           />

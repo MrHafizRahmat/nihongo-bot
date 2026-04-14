@@ -210,6 +210,10 @@ export default function TeacherDashboard() {
           <h1 className="welcome-title">Teacher Dashboard</h1>
           <p className="welcome-sub">Here's how your class is doing today.</p>
 
+          <button onClick={() => navigate("/dashboard/teacher/register")}>
+            + Register Students
+          </button>
+
           {/* Stats */}
           <div className="stats-row">
             {[
