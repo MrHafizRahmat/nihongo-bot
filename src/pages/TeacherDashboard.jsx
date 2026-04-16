@@ -44,7 +44,6 @@ export default function TeacherDashboard() {
         `)
         .eq("teacher_id", profile.id)
         .order("assigned_at", { ascending: false });
-        console.log(data);
 
       if (!error && data) {
         setStudents(data.map(row => ({
@@ -237,6 +236,9 @@ export default function TeacherDashboard() {
               <div className="user-avatar">📋</div>
               {displayName}
             </div>
+            <button className="nav-action-btn" onClick={() => navigate("/dashboard/teacher/materials")}>
+              📄 Materials
+            </button>
             <button className="nav-action-btn" onClick={() => navigate("/dashboard/teacher/register")}>
               + Register Students
             </button>

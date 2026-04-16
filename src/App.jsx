@@ -6,6 +6,8 @@ import LoginPage from "./pages/LoginPage";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import RegisterStudents from "./pages/RegisterStudents";
+import TeacherMaterials from "./pages/TeacherMaterials";
+import StudentMaterials from "./pages/StudentMaterials";
 
 export default function App() {
   return (
@@ -41,6 +43,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/dashboard/teacher/materials" element={
+            <ProtectedRoute requiredRole="teacher"><TeacherMaterials /></ProtectedRoute>
+          } />
+          
+          <Route path="/dashboard/student/materials" element={
+            <ProtectedRoute requiredRole="student"><StudentMaterials /></ProtectedRoute>
+          } />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

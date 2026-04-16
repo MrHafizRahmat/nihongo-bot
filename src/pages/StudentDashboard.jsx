@@ -201,6 +201,9 @@ export default function StudentDashboard() {
             {["A0", "A1", "A2"].map((l) => (
               <div key={l} className={`level-chip ${l === level ? "active" : "inactive"}`}>{l}</div>
             ))}
+            <button onClick={() => navigate("/dashboard/student/materials")}>
+              📄 View Materials
+            </button>
           </div>
 
           {/* Lessons */}
