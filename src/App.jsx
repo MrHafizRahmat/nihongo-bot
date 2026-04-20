@@ -8,6 +8,7 @@ import TeacherDashboard from "./pages/TeacherDashboard";
 import RegisterStudents from "./pages/RegisterStudents";
 import TeacherMaterials from "./pages/TeacherMaterials";
 import StudentMaterials from "./pages/StudentMaterials";
+import ChatPage from "./pages/ChatPage";
 
 export default function App() {
   return (
@@ -50,6 +51,10 @@ export default function App() {
           
           <Route path="/dashboard/student/materials" element={
             <ProtectedRoute requiredRole="student"><StudentMaterials /></ProtectedRoute>
+          } />
+
+          <Route path="/chat" element={
+            <ProtectedRoute requiredRole="student"><ChatPage /></ProtectedRoute>
           } />
 
           {/* Fallback */}

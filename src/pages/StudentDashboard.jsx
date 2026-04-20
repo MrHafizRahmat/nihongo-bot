@@ -2,11 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const lessons = [
-  { emoji: "👋", label: "Greetings", kana: "あいさつ", color: "#d4697a" },
-  { emoji: "🙋", label: "Self Introduction", kana: "じこしょうかい", color: "#c09050" },
-  { emoji: "🛒", label: "Shopping", kana: "かいもの", color: "#4a9090" },
-  { emoji: "🍱", label: "Ordering Food", kana: "たべもの", color: "#7a7abf" },
-  { emoji: "🗺️", label: "Directions", kana: "みちあんない", color: "#8a9a50" },
+  { id: "greeting", emoji: "👋", label: "Greetings", kana: "あいさつ", color: "#d4697a" },
+  { id: "self_intro", emoji: "🙋", label: "Self Introduction", kana: "じこしょうかい", color: "#c09050" },
+  { id: "shopping", emoji: "🛒", label: "Shopping", kana: "かいもの", color: "#4a9090" },
+  { id: "food", emoji: "🍱", label: "Ordering Food", kana: "たべもの", color: "#7a7abf" },
+  { id: "directions", emoji: "🗺️", label: "Directions", kana: "みちあんない", color: "#8a9a50" },
 ];
 
 export default function StudentDashboard() {
@@ -216,6 +216,7 @@ export default function StudentDashboard() {
                 style={{ "--accent": l.color }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = l.color}
                 onMouseLeave={e => e.currentTarget.style.borderColor = ""}
+                onClick={() => navigate(`/chat?mode=${l.id}`)}
               >
                 <div className="lesson-emoji">{l.emoji}</div>
                 <div className="lesson-kana" style={{ color: l.color }}>{l.kana}</div>
@@ -231,7 +232,7 @@ export default function StudentDashboard() {
               <span className="cta-kana">じゆうかいわ</span>
               <div className="cta-title">Free Conversation Practice</div>
             </div>
-            <button className="cta-btn" onClick={() => alert("Chat UI coming in Phase 2!")}>
+            <button className="cta-btn" onClick={() => navigate("/chat")}>
               💬 Start Chatting
             </button>
           </div>
