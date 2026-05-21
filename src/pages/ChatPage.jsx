@@ -12,12 +12,12 @@ const LESSONS = [
   { id: "directions", emoji: "🗺️", label: "Directions",       kana: "みちあんない" },
 ];
 
-const STARTERS = {
-  greeting:   { japanese: "こんにちは！", romaji: "Konnichiwa!", note: "Let's prepare for your JFS exam 📚 — Greetings. How do you say 'Good morning' in Japanese? Give it a try!" },
-  self_intro: { japanese: "はじめまして！", romaji: "Hajimemashite!", note: "JFS exam practice — Self Introduction 📚. Try: わたしは～です (watashi wa ~ desu). What is your name?" },
-  shopping:   { japanese: "いらっしゃいませ！", romaji: "Irasshaimase!", note: "JFS exam practice — Shopping 📚. I'm the shopkeeper. Key phrase: いくらですか (ikura desu ka - How much is it?) Try asking me!" },
-  food:       { japanese: "いらっしゃいませ！", romaji: "Irasshaimase!", note: "JFS exam practice — Food 📚. I'm your waiter. Key pattern: ～をひとつください (~ wo hitotsu kudasai). Try ordering!" },
-  directions: { japanese: "すみません！", romaji: "Sumimasen!", note: "JFS exam practice — Directions 📚. Key question: ～はどこですか (~ wa doko desu ka). Try asking where the station is!" },
+const CHARACTER_PROFILES = {
+  greeting:   { name: "やまだ ゆい", nameEn: "Yamada Yui",   initial: "ゆ", age: "20さい", role: "おちゃのみずじょしだいがく 2ねんせい", traits: "あにめ好き · ばれーぼーる · YOASOBI", color: "#d4697a", scene: "📍 Campus entrance — first meeting", desc: "ゆい has bumped into you near the university entrance for the first time." },
+  self_intro: { name: "たなか けんじ", nameEn: "Tanaka Kenji", initial: "け", age: "22さい", role: "とうきょうだいがく 4ねんせい (せんぱい)", traits: "ギター · えいが · おおさかしゅっしん", color: "#4a7ab0", scene: "📍 University orientation", desc: "けんじ is a friendly senior who sits next to you at orientation." },
+  shopping:   { name: "すずき はな",  nameEn: "Suzuki Hana",  initial: "は", age: "35さい", role: "コンビニ てんいん", traits: "7ねんのけいけん · よこはましゅっしん", color: "#4a9090", scene: "📍 Convenience store", desc: "はな is the shopkeeper. You are the customer." },
+  food:       { name: "さとう りょう", nameEn: "Sato Ryo",    initial: "り", age: "28さい", role: "らーめんや てんいん", traits: "ふくおかしゅっしん · りょうりずき · エネルギッシュ", color: "#c09050", scene: "📍 Ramen restaurant", desc: "りょう is your enthusiastic waiter at a popular ramen shop." },
+  directions: { name: "きむら あおい", nameEn: "Kimura Aoi",  initial: "あ", age: "19さい", role: "わせだだいがく 1ねんせい", traits: "ながのしゅっしん · はずかしがりや · まじめ", color: "#7a7abf", scene: "📍 Street near campus", desc: "あおい is a lost first-year student who needs your help finding the station." },
 };
 
 // ── Structured assistant bubble ──────────────────────────────
@@ -35,19 +35,16 @@ function AssistantBubble({ parsed }) {
 
 // ── Materials slide-in panel ─────────────────────────────────
 function MaterialsPanel({ lessonMode, onClose }) {
-  const [materials, setMaterials] = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const [materials, setMaterials]       = useState([]);
+  const [loading, setLoading]           = useState(true);
   const [viewingUrl, setViewingUrl]     = useState(null);
   const [viewingTitle, setViewingTitle] = useState("");
   const { profile } = useAuth();
 
-  useEffect(() => {
-    fetchMaterials();
-  }, [lessonMode]);
+  useEffect(() => { fetchMaterials(); }, [lessonMode]);
 
   async function fetchMaterials() {
     setLoading(true);
-
     const { data: relation } = await supabase
       .from("teacher_students")
       .select("teacher_id")
@@ -56,7 +53,6 @@ function MaterialsPanel({ lessonMode, onClose }) {
 
     if (!relation) { setLoading(false); return; }
 
-    // Fetch materials tagged to this lesson OR tagged as 'all'
     const { data } = await supabase
       .from("materials")
       .select("*")
@@ -98,21 +94,18 @@ function MaterialsPanel({ lessonMode, onClose }) {
 
   return (
     <>
-      {/* PDF viewer overlay — sits above the panel */}
       {viewingUrl && (
         <div className="viewer-overlay">
           <div className="viewer-bar">
             <span className="viewer-title">📄 {viewingTitle}</span>
             <div style={{ display: "flex", gap: 8 }}>
               <button className="viewer-dl" onClick={() => handleDownload({ file_path: viewingUrl, file_name: viewingTitle + ".pdf" })}>↓ Download</button>
-              <button className="viewer-close" onClick={() => setViewingUrl(null)}>✕ Close</button>
+              <button className="viewer-close-btn" onClick={() => setViewingUrl(null)}>✕ Close</button>
             </div>
           </div>
           <iframe className="viewer-frame" src={viewingUrl} title={viewingTitle} />
         </div>
       )}
-
-      {/* Slide-in panel */}
       <div className="mat-overlay" onClick={onClose} />
       <div className="mat-panel">
         <div className="mat-header">
@@ -122,7 +115,6 @@ function MaterialsPanel({ lessonMode, onClose }) {
           </div>
           <button className="mat-close" onClick={onClose}>✕</button>
         </div>
-
         <div className="mat-body">
           {loading ? (
             [1,2,3].map(i => (
@@ -161,6 +153,48 @@ function MaterialsPanel({ lessonMode, onClose }) {
   );
 }
 
+// ── Pre-conversation screen ──────────────────────────────────
+function StartScreen({ lessonMode, onStart, starting }) {
+  const currentLesson = LESSONS.find(l => l.id === lessonMode);
+  const char = CHARACTER_PROFILES[lessonMode];
+  return (
+    <div className="start-screen">
+      {/* Character card */}
+      <div className="yui-card">
+        <div className="yui-avatar" style={{ background: `linear-gradient(135deg, ${char.color}30, ${char.color}60)`, borderColor: char.color, color: char.color }}>{char.initial}</div>
+        <div className="yui-info">
+          <div className="yui-name">{char.name} <span className="yui-name-en">{char.nameEn}</span></div>
+          <div className="yui-detail">{char.age} · {char.role}</div>
+          <div className="yui-detail">{char.traits}</div>
+        </div>
+      </div>
+
+      {/* Scenario */}
+      <div className="scenario-card">
+        <div className="scenario-scene">{char.scene}</div>
+        <div className="scenario-desc">{char.desc}</div>
+        <div className="scenario-lesson">
+          {currentLesson?.emoji} Practising: <strong>{currentLesson?.label}</strong> ({currentLesson?.kana})
+        </div>
+      </div>
+
+      {/* Tips */}
+      <div className="tips-card">
+        <div className="tips-title">💡 How this works</div>
+        <div className="tips-text">{CHARACTER_PROFILES[lessonMode]?.name} will start the conversation. Reply naturally in Japanese or English — they'll gently guide you to use the right vocabulary. Mistakes are okay!</div>
+      </div>
+
+      <button className="start-btn" onClick={onStart} disabled={starting}>
+        {starting ? (
+          <><span className="spinner" /> Starting…</>
+        ) : (
+          <>はじめましょう！— Start Conversation</>
+        )}
+      </button>
+    </div>
+  );
+}
+
 // ── Main chat page ───────────────────────────────────────────
 export default function ChatPage() {
   const navigate = useNavigate();
@@ -170,59 +204,43 @@ export default function ChatPage() {
   const inputRef  = useRef(null);
 
   const initialMode = searchParams.get("mode") || "greeting";
-  const [lessonMode, setLessonMode]   = useState(initialMode);
-  const [sessionId, setSessionId]     = useState(null);
-  const [messages, setMessages]       = useState([]);
-  const [input, setInput]             = useState("");
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState("");
+  const [lessonMode, setLessonMode]       = useState(initialMode);
+  const [sessionId, setSessionId]         = useState(null);
+  const [messages, setMessages]           = useState([]);
+  const [input, setInput]                 = useState("");
+  const [loading, setLoading]             = useState(false);
+  const [starting, setStarting]           = useState(false);
+  const [sessionActive, setSessionActive] = useState(false);
+  const [error, setError]                 = useState("");
   const [showMaterials, setShowMaterials] = useState(false);
 
   useEffect(() => { prewarmTokenizer(); }, []);
 
-  // Reset chat when lesson mode changes
+  // Reset when lesson mode changes
   useEffect(() => {
     setSessionId(null);
-    setMessages([{ role: "assistant", parsed: STARTERS[lessonMode], id: "starter" }]);
+    setMessages([]);
+    setSessionActive(false);
     setError("");
     setShowMaterials(false);
-    inputRef.current?.focus();
   }, [lessonMode]);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+    if (sessionActive) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading, sessionActive]);
 
-  function resetSession() {
-    setSessionId(null);
-    setMessages([{ role: "assistant", parsed: STARTERS[lessonMode], id: "starter-reset-" + Date.now() }]);
+  // ── Start conversation (ゆい speaks first) ───────────────────
+  async function handleStart() {
+    setStarting(true);
     setError("");
-    inputRef.current?.focus();
-  }
-
-  async function sendMessage() {
-    const text = input.trim();
-    if (!text || loading) return;
-
-    setInput("");
-    setError("");
-
-    const userMsg = { role: "user", content: text, id: Date.now().toString() };
-    setMessages(prev => [...prev, userMsg]);
-    setLoading(true);
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
-
       const res = await supabase.functions.invoke("chat", {
-        body: { message: text, lesson_mode: lessonMode, session_id: sessionId },
+        body: { lesson_mode: lessonMode, start_session: true },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
-
       if (res.error) throw new Error(res.error.message);
-
       const { reply, session_id: newSessionId } = res.data;
-
       const activeSessionId = sessionId || newSessionId;
 
       if (!sessionId) {
@@ -232,10 +250,52 @@ export default function ChatPage() {
       let parsed = parseResponse(reply);
       if (parsed.japanese) parsed.japanese = await toHiragana(parsed.japanese);
 
-      setMessages(prev => [
-        ...prev,
-        { role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now() }
-      ]);
+      setMessages([{ role: "assistant", parsed, id: "opening" }]);
+      setSessionActive(true);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    } catch (err) {
+      setError("Could not start conversation. Please try again.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  // ── Reset session ────────────────────────────────────────────
+  function resetSession() {
+    setSessionId(null);
+    setMessages([]);
+    setSessionActive(false);
+    setError("");
+  }
+
+  // ── Send message ─────────────────────────────────────────────
+  async function sendMessage() {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput("");
+    setError("");
+
+    const userMsg = { role: "user", content: text, id: Date.now().toString() };
+    setMessages(prev => [...prev, userMsg]);
+    setLoading(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await supabase.functions.invoke("chat", {
+        body: { message: text, lesson_mode: lessonMode, session_id: sessionId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.error) throw new Error(res.error.message);
+
+      const { reply, session_id: newSessionId } = res.data;
+      if (newSessionId && !sessionId) setSessionId(newSessionId);
+
+      let parsed = parseResponse(reply);
+      if (parsed.japanese) parsed.japanese = await toHiragana(parsed.japanese);
+
+      setMessages(prev => [...prev, {
+        role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now()
+      }]);
 
     } catch (err) {
       setError("Something went wrong. Please try again.");
@@ -276,12 +336,10 @@ export default function ChatPage() {
         .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rose); }
         .nav-right { display: flex; align-items: center; gap: 10px; }
         .nav-user { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: #9a8880; }
-        .nav-btn { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; background: none; border: 1px solid var(--mist); border-radius: 5px; padding: 5px 12px; cursor: pointer; transition: color 0.2s, border-color 0.2s; color: #b0a098; }
+        .nav-btn { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; background: none; border: 1px solid var(--mist); border-radius: 5px; padding: 5px 12px; cursor: pointer; color: #b0a098; transition: color 0.2s, border-color 0.2s; }
         .nav-btn:hover { color: var(--rose); border-color: rgba(212,105,122,0.3); }
         .nav-btn.materials { background: var(--ink); color: white; border-color: var(--ink); }
         .nav-btn.materials:hover { background: var(--rose); border-color: var(--rose); color: white; }
-        .nav-btn.reset { color: #9a8880; }
-        .nav-btn.reset:hover { color: var(--rose); }
 
         /* Lesson bar */
         .lesson-bar { display: flex; gap: 8px; padding: 12px 20px; overflow-x: auto; border-bottom: 1px solid rgba(212,105,122,0.1); flex-shrink: 0; scrollbar-width: none; }
@@ -291,30 +349,55 @@ export default function ChatPage() {
         .lesson-chip.active { background: var(--ink); border-color: var(--ink); color: white; }
         .lesson-chip-kana { font-family: 'Noto Serif JP', serif; font-size: 0.72rem; opacity: 0.7; }
 
-        /* Chat body */
-        .chat-body { flex: 1; overflow-y: auto; padding: 24px 20px; display: flex; flex-direction: column; gap: 16px; max-width: 760px; width: 100%; margin: 0 auto; align-self: stretch; }
+        /* Start screen */
+        .start-screen { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 32px 20px; max-width: 520px; margin: 0 auto; width: 100%; }
 
-        /* Mode header */
-        .mode-header { text-align: center; padding: 12px 0 4px; }
-        .mode-header-emoji { font-size: 1.8rem; display: block; margin-bottom: 4px; }
-        .mode-header-kana { font-family: 'Noto Serif JP', serif; font-size: 0.85rem; color: var(--rose); letter-spacing: 0.15em; display: block; }
-        .mode-header-label { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #b0a098; margin-top: 2px; }
+        .yui-card { background: white; border: 1.5px solid var(--mist); border-radius: 14px; padding: 20px; display: flex; gap: 16px; align-items: center; width: 100%; }
+        .yui-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, rgba(212,105,122,0.2), rgba(212,105,122,0.4)); display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif JP', serif; font-size: 1.4rem; color: var(--rose); flex-shrink: 0; border: 2px solid var(--rose-light); }
+        .yui-name { font-family: 'Shippori Mincho', serif; font-size: 1.05rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+        .yui-name-en { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #9a8880; font-weight: 400; margin-left: 6px; }
+        .yui-detail { font-family: 'DM Sans', sans-serif; font-size: 0.76rem; color: #9a8880; line-height: 1.6; }
+
+        .scenario-card { background: var(--paper); border: 1.5px solid var(--mist); border-radius: 12px; padding: 18px 20px; width: 100%; }
+        .scenario-scene { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--rose); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
+        .scenario-desc { font-family: 'Shippori Mincho', serif; font-size: 1rem; color: var(--ink); margin-bottom: 8px; }
+        .scenario-lesson { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #9a8880; }
+
+        .tips-card { background: rgba(212,105,122,0.05); border: 1px solid rgba(212,105,122,0.15); border-radius: 10px; padding: 14px 18px; width: 100%; }
+        .tips-title { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; color: var(--rose); margin-bottom: 5px; }
+        .tips-text { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: #7a6a60; line-height: 1.6; }
+
+        .start-btn { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; background: var(--ink); color: white; border: none; border-radius: 8px; padding: 14px; cursor: pointer; transition: background 0.2s, transform 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .start-btn:hover { background: var(--rose); transform: translateY(-1px); }
+        .start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Chat body */
+        .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; max-width: 760px; width: 100%; margin: 0 auto; align-self: stretch; }
+
+        /* Chat header (inside active chat) */
+        .chat-character-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--paper); border: 1.5px solid var(--mist); border-radius: 10px; margin-bottom: 4px; }
+        .char-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(212,105,122,0.2), rgba(212,105,122,0.35)); display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--rose); border: 1.5px solid var(--rose-light); flex-shrink: 0; }
+        .char-info { flex: 1; }
+        .char-name { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--ink); }
+        .char-scene { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: #9a8880; }
+        .reset-link { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: #b0a098; background: none; border: none; cursor: pointer; padding: 0; transition: color 0.2s; }
+        .reset-link:hover { color: var(--rose); }
 
         /* Messages */
         .message { display: flex; gap: 10px; max-width: 82%; }
         .message.user { align-self: flex-end; flex-direction: row-reverse; }
         .message.assistant { align-self: flex-start; }
-        .avatar { width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; margin-top: 2px; }
-        .avatar.assistant { background: rgba(212,105,122,0.12); }
+        .avatar { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; margin-top: 2px; }
+        .avatar.assistant { border: 1.5px solid; font-family: 'Noto Serif JP', serif; font-size: 0.78rem; }
         .avatar.user { background: rgba(46,38,34,0.08); }
         .bubble.user { padding: 11px 15px; border-radius: 16px; border-bottom-right-radius: 4px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; line-height: 1.65; word-break: break-word; background: var(--ink); color: white; }
         .structured-bubble { background: white; border: 1.5px solid var(--mist); border-radius: 16px; border-bottom-left-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 0; word-break: break-word; }
-        .bubble-japanese { font-family: 'Noto Serif JP', serif; font-size: 1.15rem; font-weight: 400; color: var(--ink); letter-spacing: 0.05em; line-height: 1.6; padding-bottom: 4px; }
-        .bubble-romaji { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: var(--rose); font-weight: 400; letter-spacing: 0.03em; padding-bottom: 10px; }
+        .bubble-japanese { font-family: 'Noto Serif JP', serif; font-size: 1.15rem; color: var(--ink); letter-spacing: 0.05em; line-height: 1.6; padding-bottom: 4px; }
+        .bubble-romaji { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: var(--rose); letter-spacing: 0.03em; padding-bottom: 10px; }
         .bubble-divider { border: none; border-top: 1px solid var(--mist); margin-bottom: 10px; }
         .bubble-note { font-family: 'DM Sans', sans-serif; font-size: 0.86rem; color: #5a4a44; line-height: 1.65; }
 
-        /* Typing indicator */
+        /* Typing */
         .typing { display: flex; gap: 10px; align-self: flex-start; }
         .typing-bubble { background: white; border: 1.5px solid var(--mist); border-radius: 16px; border-bottom-left-radius: 4px; padding: 13px 16px; display: flex; gap: 5px; align-items: center; }
         @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
@@ -341,7 +424,7 @@ export default function ChatPage() {
         .mat-header { padding: 20px 20px 16px; border-bottom: 1px solid var(--mist); display: flex; justify-content: space-between; align-items: flex-start; flex-shrink: 0; background: var(--paper); }
         .mat-kana { font-family: 'Noto Serif JP', serif; font-size: 0.78rem; color: var(--rose); letter-spacing: 0.15em; margin-bottom: 3px; }
         .mat-title { font-family: 'Shippori Mincho', serif; font-size: 1rem; font-weight: 600; color: var(--ink); }
-        .mat-close { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; background: none; border: 1px solid var(--mist); border-radius: 5px; padding: 5px 10px; cursor: pointer; color: #9a8880; transition: color 0.2s; }
+        .mat-close { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; background: none; border: 1px solid var(--mist); border-radius: 5px; padding: 5px 10px; cursor: pointer; color: #9a8880; }
         .mat-close:hover { color: var(--rose); }
         .mat-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
         .mat-card { background: white; border: 1.5px solid var(--mist); border-radius: 10px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start; transition: border-color 0.2s; }
@@ -362,13 +445,17 @@ export default function ChatPage() {
         @keyframes shimmer { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
         .shimmer { background: var(--mist); border-radius: 4px; animation: shimmer 1.2s ease infinite; }
 
-        /* PDF viewer (inside materials panel context) */
+        /* PDF viewer */
         .viewer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: flex; flex-direction: column; }
         .viewer-bar { background: var(--charcoal); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         .viewer-title { font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: white; font-weight: 500; }
         .viewer-dl { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: white; background: var(--rose); border: none; border-radius: 5px; padding: 6px 14px; cursor: pointer; }
-        .viewer-close { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: rgba(255,255,255,0.6); background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 5px 14px; cursor: pointer; }
+        .viewer-close-btn { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: rgba(255,255,255,0.6); background: none; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 5px 14px; cursor: pointer; }
         .viewer-frame { flex: 1; width: 100%; border: none; }
+
+        /* Spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
 
         @media (max-width: 600px) {
           .nav { padding: 12px 16px; }
@@ -376,15 +463,12 @@ export default function ChatPage() {
           .message { max-width: 90%; }
           .input-area { padding: 12px; }
           .mat-panel { width: 100%; }
+          .start-screen { padding: 20px 16px; }
         }
       `}</style>
 
-      {/* Materials panel */}
       {showMaterials && (
-        <MaterialsPanel
-          lessonMode={lessonMode}
-          onClose={() => setShowMaterials(false)}
-        />
+        <MaterialsPanel lessonMode={lessonMode} onClose={() => setShowMaterials(false)} />
       )}
 
       <div className="chat-page">
@@ -393,12 +477,7 @@ export default function ChatPage() {
           <div className="nav-logo"><div className="nav-dot" />にほんご</div>
           <div className="nav-right">
             <span className="nav-user">🎓 {displayName}</span>
-            <button className="nav-btn materials" onClick={() => setShowMaterials(true)}>
-              📄 Materials
-            </button>
-            <button className="nav-btn reset" onClick={resetSession} title="Start a new session">
-              ↺ New Session
-            </button>
+            <button className="nav-btn materials" onClick={() => setShowMaterials(true)}>📄 Materials</button>
             <button className="nav-btn" onClick={() => navigate("/dashboard/student")}>← Dashboard</button>
           </div>
         </nav>
@@ -413,53 +492,64 @@ export default function ChatPage() {
           ))}
         </div>
 
-        {/* Messages */}
-        <div className="chat-body">
-          <div className="mode-header">
-            <span className="mode-header-emoji">{currentLesson?.emoji}</span>
-            <span className="mode-header-kana">{currentLesson?.kana}</span>
-            <div className="mode-header-label">{currentLesson?.label} Practice — JFS Exam Prep</div>
-          </div>
-
-          {messages.map((m, i) => (
-            <div key={m.id || i} className={`message ${m.role}`}>
-              <div className={`avatar ${m.role}`}>{m.role === "assistant" ? "🤖" : "🎓"}</div>
-              {m.role === "assistant"
-                ? <AssistantBubble parsed={m.parsed} />
-                : <div className="bubble user">{m.content}</div>
-              }
-            </div>
-          ))}
-
-          {loading && (
-            <div className="typing">
-              <div className="avatar assistant">🤖</div>
-              <div className="typing-bubble">
-                <div className="dot" /><div className="dot" /><div className="dot" />
+        {/* Pre-conversation screen OR active chat */}
+        {!sessionActive ? (
+          <StartScreen lessonMode={lessonMode} onStart={handleStart} starting={starting} />
+        ) : (
+          <>
+            <div className="chat-body">
+              {/* Character bar */}
+              <div className="chat-character-bar">
+                <div className="char-avatar" style={{ background: `linear-gradient(135deg, ${CHARACTER_PROFILES[lessonMode]?.color}25, ${CHARACTER_PROFILES[lessonMode]?.color}45)`, borderColor: `${CHARACTER_PROFILES[lessonMode]?.color}80`, color: CHARACTER_PROFILES[lessonMode]?.color }}>{CHARACTER_PROFILES[lessonMode]?.initial}</div>
+                <div className="char-info">
+                  <div className="char-name">{CHARACTER_PROFILES[lessonMode]?.name} · {CHARACTER_PROFILES[lessonMode]?.scene}</div>
+                  <div className="char-scene">{CHARACTER_PROFILES[lessonMode]?.desc}</div>
+                </div>
+                <button className="reset-link" onClick={resetSession}>↺ New Session</button>
               </div>
+
+              {messages.map((m, i) => (
+                <div key={m.id || i} className={`message ${m.role}`}>
+                  <div className={`avatar ${m.role}`} style={m.role === "assistant" ? { background: `linear-gradient(135deg, ${CHARACTER_PROFILES[lessonMode]?.color}20, ${CHARACTER_PROFILES[lessonMode]?.color}40)`, borderColor: `${CHARACTER_PROFILES[lessonMode]?.color}70`, color: CHARACTER_PROFILES[lessonMode]?.color } : {}}>
+                    {m.role === "assistant" ? (CHARACTER_PROFILES[lessonMode]?.initial || "？") : "🎓"}
+                  </div>
+                  {m.role === "assistant"
+                    ? <AssistantBubble parsed={m.parsed} />
+                    : <div className="bubble user">{m.content}</div>
+                  }
+                </div>
+              ))}
+
+              {loading && (
+                <div className="typing">
+                  <div className="avatar assistant" style={{ background: `linear-gradient(135deg, ${CHARACTER_PROFILES[lessonMode]?.color}20, ${CHARACTER_PROFILES[lessonMode]?.color}40)`, borderColor: `${CHARACTER_PROFILES[lessonMode]?.color}70`, color: CHARACTER_PROFILES[lessonMode]?.color }}>{CHARACTER_PROFILES[lessonMode]?.initial || "？"}</div>
+                  <div className="typing-bubble">
+                    <div className="dot" /><div className="dot" /><div className="dot" />
+                  </div>
+                </div>
+              )}
+
+              {error && <div className="error-bar">⚠ {error}</div>}
+              <div ref={bottomRef} />
             </div>
-          )}
 
-          {error && <div className="error-bar">⚠ {error}</div>}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input */}
-        <div className="input-area">
-          <div className="input-wrap">
-            <textarea
-              ref={inputRef}
-              className="input-box"
-              rows={1}
-              placeholder={`Practice ${currentLesson?.label.toLowerCase()}… type in Japanese or English`}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <button className="send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>➤</button>
-          </div>
-          <div className="input-hint">Press Enter to send · Shift+Enter for new line · ↺ New Session to restart</div>
-        </div>
+            <div className="input-area">
+              <div className="input-wrap">
+                <textarea
+                  ref={inputRef}
+                  className="input-box"
+                  rows={1}
+                  placeholder={`Reply to ${CHARACTER_PROFILES[lessonMode]?.name || ""}… type in Japanese or English`}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+                <button className="send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>➤</button>
+              </div>
+              <div className="input-hint">Press Enter to send · Shift+Enter for new line</div>
+            </div>
+          </>
+        )}
       </div>
     </>
   );
