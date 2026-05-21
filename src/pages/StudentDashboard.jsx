@@ -201,9 +201,6 @@ export default function StudentDashboard() {
             {["A0", "A1", "A2"].map((l) => (
               <div key={l} className={`level-chip ${l === level ? "active" : "inactive"}`}>{l}</div>
             ))}
-            <button onClick={() => navigate("/dashboard/student/materials")}>
-              📄 View Materials
-            </button>
           </div>
 
           {/* Lessons */}
@@ -224,17 +221,6 @@ export default function StudentDashboard() {
                 <div className="lesson-arrow" style={{ color: l.color }}>Start →</div>
               </div>
             ))}
-          </div>
-
-          {/* Free chat CTA */}
-          <div className="chat-cta">
-            <div className="cta-left">
-              <span className="cta-kana">じゆうかいわ</span>
-              <div className="cta-title">Free Conversation Practice</div>
-            </div>
-            <button className="cta-btn" onClick={() => navigate("/chat")}>
-              💬 Start Chatting
-            </button>
           </div>
         </div>
       </div>

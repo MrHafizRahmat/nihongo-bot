@@ -4,12 +4,18 @@
 
 export function parseResponse(raw) {
   const extract = (tag, text) => {
-    // First try exact match with closing tag
+    // Strict match first
     const strict = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\s*\\/\\s*${tag}\\s*\\]`, "i");
     const strictMatch = text.match(strict);
     if (strictMatch) return strictMatch[1].trim();
 
-    // Fallback: capture everything after [TAG] until the next [ or end of string
+    // Fuzzy match — closing tag starts with [/ and contains most of the tag name
+    // Handles typos like [/JAPANEI], [/ROMAJ], [/NOT], etc.
+    const fuzzy = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\s*\\/[A-Z_\\s]{1,10}\\]`, "i");
+    const fuzzyMatch = text.match(fuzzy);
+    if (fuzzyMatch) return fuzzyMatch[1].trim();
+
+    // Fallback — grab everything after [TAG] to end of string
     const loose = new RegExp(`\\[${tag}\\]([\\s\\S]*)$`, "i");
     const looseMatch = text.match(loose);
     return looseMatch ? looseMatch[1].trim() : null;

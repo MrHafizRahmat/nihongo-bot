@@ -17,6 +17,7 @@ export default function TeacherMaterials() {
   // Upload form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [lessonMode, setLessonMode] = useState("all");
   const [selectedFile, setSelectedFile] = useState(null);
 
   // Viewer state
@@ -82,6 +83,7 @@ export default function TeacherMaterials() {
         file_path: filePath,
         file_name: selectedFile.name,
         file_size: selectedFile.size,
+        lesson_mode: lessonMode,
       });
 
       if (dbError) throw new Error(dbError.message);
@@ -89,6 +91,7 @@ export default function TeacherMaterials() {
       setSuccess("✅ Material uploaded successfully!");
       setTitle("");
       setDescription("");
+      setLessonMode("all");
       setSelectedFile(null);
       if (fileRef.current) fileRef.current.value = "";
       fetchMaterials();
@@ -290,6 +293,18 @@ export default function TeacherMaterials() {
                   <textarea placeholder="Brief description of this material…" value={description} onChange={e => setDescription(e.target.value)} />
                 </div>
 
+                <div className="field">
+                  <label>Lesson Tag</label>
+                  <select value={lessonMode} onChange={e => setLessonMode(e.target.value)} style={{ width: "100%", fontFamily: "'DM Sans', sans-serif", fontSize: "0.88rem", color: "#0e1f1f", background: "#eef6f6", border: "1.5px solid #d8eaea", borderRadius: 6, padding: "10px 13px", outline: "none", cursor: "pointer" }}>
+                    <option value="all">All Lessons (General)</option>
+                    <option value="greeting">👋 Greetings</option>
+                    <option value="self_intro">🙋 Self Introduction</option>
+                    <option value="shopping">🛒 Shopping</option>
+                    <option value="food">🍱 Ordering Food</option>
+                    <option value="directions">🗺️ Directions</option>
+                  </select>
+                </div>
+
                 <div className={`file-zone ${selectedFile ? "has-file" : ""}`} onClick={() => fileRef.current?.click()}>
                   <div className="file-zone-icon">{selectedFile ? "✅" : "📄"}</div>
                   {selectedFile
@@ -342,7 +357,7 @@ export default function TeacherMaterials() {
                     <div className="material-meta">
                       <span>{formatSize(m.file_size)}</span>
                       <span>{formatDate(m.created_at)}</span>
-                      <span>{m.file_name}</span>
+                      <span style={{ color: "var(--teal)", fontWeight: 500 }}>{m.lesson_mode === "all" ? "📚 All Lessons" : m.lesson_mode}</span>
                     </div>
                   </div>
                   <div className="material-actions">
