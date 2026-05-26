@@ -79,22 +79,24 @@ function loadTokenizer() {
 }
 
 // Converts kanji in a string to hiragana using kuromoji token readings.
+// Also converts any katakana to hiragana.
 // Returns the original string if conversion fails.
 export async function toHiragana(text) {
   if (!text) return text;
 
-  // If no kanji present, skip conversion entirely
-  const hasKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(text);
-  if (!hasKanji) return text;
+  // First convert any katakana → hiragana (no tokenizer needed)
+  let result = katakanaToHiragana(text);
+
+  // Then check if kanji remain — if not, skip tokenizer entirely
+  const hasKanji = /[\u4e00-\u9faf\u3400-\u4dbf]/.test(result);
+  if (!hasKanji) return result;
 
   try {
     const tokenizer = await loadTokenizer();
-    const tokens = tokenizer.tokenize(text);
+    const tokens = tokenizer.tokenize(result);
 
     return tokens.map(token => {
-      // Use the reading (in katakana) if available, else use surface form
       if (token.reading) {
-        // Convert katakana reading → hiragana
         return katakanaToHiragana(token.reading);
       }
       return token.surface_form;
@@ -102,7 +104,7 @@ export async function toHiragana(text) {
 
   } catch (err) {
     console.warn("Kuromoji conversion failed, using original text:", err);
-    return text;
+    return result;
   }
 }
 

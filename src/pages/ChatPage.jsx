@@ -23,12 +23,30 @@ const CHARACTER_PROFILES = {
 // ── Structured assistant bubble ──────────────────────────────
 function AssistantBubble({ parsed }) {
   const { japanese, romaji, note } = parsed;
+  const [expanded, setExpanded] = useState(false);
+  const hasExtra = romaji || note;
+
   return (
     <div className="structured-bubble">
       {japanese && <div className="bubble-japanese">{japanese}</div>}
-      {romaji   && <div className="bubble-romaji">{romaji}</div>}
-      {(japanese || romaji) && note && <div className="bubble-divider" />}
-      {note     && <div className="bubble-note">{note}</div>}
+
+      {hasExtra && (
+        <button
+          className={`bubble-toggle ${expanded ? "open" : ""}`}
+          onClick={() => setExpanded(prev => !prev)}
+        >
+          <span className="bubble-toggle-icon">{expanded ? "▲" : "▼"}</span>
+          {expanded ? "Hide" : "Show romaji & notes"}
+        </button>
+      )}
+
+      {expanded && (
+        <div className="bubble-extra">
+          {romaji && <div className="bubble-romaji">{romaji}</div>}
+          {romaji && note && <div className="bubble-divider" />}
+          {note   && <div className="bubble-note">{note}</div>}
+        </div>
+      )}
     </div>
   );
 }
@@ -229,7 +247,7 @@ export default function ChatPage() {
     if (sessionActive) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading, sessionActive]);
 
-  // ── Start conversation (ゆい speaks first) ───────────────────
+  // ── Start conversation (character speaks first) ──────────────
   async function handleStart() {
     setStarting(true);
     setError("");
@@ -241,11 +259,8 @@ export default function ChatPage() {
       });
       if (res.error) throw new Error(res.error.message);
       const { reply, session_id: newSessionId } = res.data;
-      const activeSessionId = sessionId || newSessionId;
 
-      if (!sessionId) {
-        setSessionId(activeSessionId);
-      }
+      if (newSessionId) setSessionId(newSessionId);
 
       let parsed = parseResponse(reply);
       if (parsed.japanese) parsed.japanese = await toHiragana(parsed.japanese);
@@ -351,32 +366,26 @@ export default function ChatPage() {
 
         /* Start screen */
         .start-screen { flex: 1; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 32px 20px; max-width: 520px; margin: 0 auto; width: 100%; }
-
         .yui-card { background: white; border: 1.5px solid var(--mist); border-radius: 14px; padding: 20px; display: flex; gap: 16px; align-items: center; width: 100%; }
-        .yui-avatar { width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, rgba(212,105,122,0.2), rgba(212,105,122,0.4)); display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif JP', serif; font-size: 1.4rem; color: var(--rose); flex-shrink: 0; border: 2px solid var(--rose-light); }
+        .yui-avatar { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif JP', serif; font-size: 1.4rem; flex-shrink: 0; border: 2px solid; }
         .yui-name { font-family: 'Shippori Mincho', serif; font-size: 1.05rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
         .yui-name-en { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #9a8880; font-weight: 400; margin-left: 6px; }
         .yui-detail { font-family: 'DM Sans', sans-serif; font-size: 0.76rem; color: #9a8880; line-height: 1.6; }
-
         .scenario-card { background: var(--paper); border: 1.5px solid var(--mist); border-radius: 12px; padding: 18px 20px; width: 100%; }
         .scenario-scene { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--rose); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 5px; }
         .scenario-desc { font-family: 'Shippori Mincho', serif; font-size: 1rem; color: var(--ink); margin-bottom: 8px; }
         .scenario-lesson { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #9a8880; }
-
         .tips-card { background: rgba(212,105,122,0.05); border: 1px solid rgba(212,105,122,0.15); border-radius: 10px; padding: 14px 18px; width: 100%; }
         .tips-title { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 600; color: var(--rose); margin-bottom: 5px; }
         .tips-text { font-family: 'DM Sans', sans-serif; font-size: 0.8rem; color: #7a6a60; line-height: 1.6; }
-
         .start-btn { width: 100%; font-family: 'DM Sans', sans-serif; font-size: 0.95rem; font-weight: 500; background: var(--ink); color: white; border: none; border-radius: 8px; padding: 14px; cursor: pointer; transition: background 0.2s, transform 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .start-btn:hover { background: var(--rose); transform: translateY(-1px); }
         .start-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         /* Chat body */
         .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; max-width: 760px; width: 100%; margin: 0 auto; align-self: stretch; }
-
-        /* Chat header (inside active chat) */
         .chat-character-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--paper); border: 1.5px solid var(--mist); border-radius: 10px; margin-bottom: 4px; }
-        .char-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, rgba(212,105,122,0.2), rgba(212,105,122,0.35)); display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: var(--rose); border: 1.5px solid var(--rose-light); flex-shrink: 0; }
+        .char-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Noto Serif JP', serif; font-size: 0.9rem; border: 1.5px solid; flex-shrink: 0; }
         .char-info { flex: 1; }
         .char-name { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--ink); }
         .char-scene { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: #9a8880; }
@@ -396,6 +405,16 @@ export default function ChatPage() {
         .bubble-romaji { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: var(--rose); letter-spacing: 0.03em; padding-bottom: 10px; }
         .bubble-divider { border: none; border-top: 1px solid var(--mist); margin-bottom: 10px; }
         .bubble-note { font-family: 'DM Sans', sans-serif; font-size: 0.86rem; color: #5a4a44; line-height: 1.65; }
+        .bubble-toggle {
+          display: flex; align-items: center; gap: 5px; margin-top: 8px;
+          font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 500;
+          color: #b0a098; background: none; border: 1px solid var(--mist);
+          border-radius: 100px; padding: 3px 10px; cursor: pointer;
+          transition: color 0.2s, border-color 0.2s; width: fit-content;
+        }
+        .bubble-toggle:hover, .bubble-toggle.open { color: var(--rose); border-color: var(--rose-light); }
+        .bubble-toggle-icon { font-size: 0.6rem; }
+        .bubble-extra { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--mist); display: flex; flex-direction: column; gap: 0; }
 
         /* Typing */
         .typing { display: flex; gap: 10px; align-self: flex-start; }
@@ -472,7 +491,6 @@ export default function ChatPage() {
       )}
 
       <div className="chat-page">
-        {/* Nav */}
         <nav className="nav">
           <div className="nav-logo"><div className="nav-dot" />にほんご</div>
           <div className="nav-right">
@@ -482,7 +500,6 @@ export default function ChatPage() {
           </div>
         </nav>
 
-        {/* Lesson selector */}
         <div className="lesson-bar">
           {LESSONS.map(l => (
             <button key={l.id} className={`lesson-chip ${lessonMode === l.id ? "active" : ""}`} onClick={() => handleLessonChange(l.id)}>
@@ -492,13 +509,11 @@ export default function ChatPage() {
           ))}
         </div>
 
-        {/* Pre-conversation screen OR active chat */}
         {!sessionActive ? (
           <StartScreen lessonMode={lessonMode} onStart={handleStart} starting={starting} />
         ) : (
           <>
             <div className="chat-body">
-              {/* Character bar */}
               <div className="chat-character-bar">
                 <div className="char-avatar" style={{ background: `linear-gradient(135deg, ${CHARACTER_PROFILES[lessonMode]?.color}25, ${CHARACTER_PROFILES[lessonMode]?.color}45)`, borderColor: `${CHARACTER_PROFILES[lessonMode]?.color}80`, color: CHARACTER_PROFILES[lessonMode]?.color }}>{CHARACTER_PROFILES[lessonMode]?.initial}</div>
                 <div className="char-info">
