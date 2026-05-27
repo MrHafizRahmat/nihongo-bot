@@ -3,19 +3,22 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 
-const lessonStats = [
-  { label: "Greetings", kana: "あいさつ", count: 18 },
-  { label: "Shopping", kana: "かいもの", count: 11 },
-  { label: "Self Intro", kana: "じこしょうかい", count: 14 },
-  { label: "Food", kana: "たべもの", count: 7 },
-];
+const LESSON_META = {
+  greeting:   { label: "Greetings",        kana: "あいさつ" },
+  self_intro: { label: "Self Introduction", kana: "じこしょうかい" },
+  shopping:   { label: "Shopping",          kana: "かいもの" },
+  food:       { label: "Ordering Food",     kana: "たべもの" },
+  directions: { label: "Directions",        kana: "みちあんない" },
+};
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
   const { profile, signOut } = useAuth();
 
-  const [students, setStudents] = useState([]);
+  const [students, setStudents]         = useState([]);
+  const [lessonStats, setLessonStats]   = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   const handleLogout = async () => {
     await signOut();
@@ -30,7 +33,6 @@ export default function TeacherDashboard() {
     const fetchStudents = async () => {
       setLoadingStudents(true);
 
-      // Join teacher_students with profiles to get student details
       const { data, error } = await supabase
         .from("teacher_students")
         .select(`
@@ -55,7 +57,25 @@ export default function TeacherDashboard() {
       setLoadingStudents(false);
     };
 
+    const fetchLessonStats = async () => {
+      setLoadingStats(true);
+      const { data } = await supabase
+        .from("teacher_lesson_stats")
+        .select("lesson_mode, session_count")
+        .eq("teacher_id", profile.id);
+
+      if (data) {
+        const stats = Object.entries(LESSON_META).map(([id, meta]) => {
+          const row = data.find(d => d.lesson_mode === id);
+          return { id, label: meta.label, kana: meta.kana, count: row?.session_count || 0 };
+        }).sort((a, b) => b.count - a.count);
+        setLessonStats(stats);
+      }
+      setLoadingStats(false);
+    };
+
     fetchStudents();
+    fetchLessonStats();
   }, [profile?.id]);
 
   // Compute level counts for stats
@@ -218,6 +238,7 @@ export default function TeacherDashboard() {
         .ls-label { font-family: 'DM Sans', sans-serif; font-size: 0.87rem; color: var(--charcoal); flex: 1; }
         .ls-count { font-family: 'Shippori Mincho', serif; font-size: 1.1rem; color: var(--ink); font-weight: 600; }
         .ls-unit { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: #8ab0b0; margin-left: 3px; }
+        @keyframes shimmer { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
 
         @media (max-width: 600px) {
           .nav { padding: 18px 24px; }
@@ -236,9 +257,6 @@ export default function TeacherDashboard() {
               <div className="user-avatar">📋</div>
               {displayName}
             </div>
-            <button className="nav-action-btn" onClick={() => navigate("/dashboard/teacher/materials")}>
-              📄 Materials
-            </button>
             <button className="nav-action-btn" onClick={() => navigate("/dashboard/teacher/register")}>
               + Register Students
             </button>
@@ -309,20 +327,34 @@ export default function TeacherDashboard() {
               )}
             </div>
 
-            {/* Lesson usage — placeholder until chat is built */}
+            {/* Lesson usage */}
             <div>
-              <div className="section-label">Lesson Usage This Week</div>
+              <div className="section-label">Lesson Usage (All Time)</div>
               <div className="lesson-stat-list">
-                {lessonStats.map(l => (
-                  <div className="lesson-stat-row" key={l.label}>
-                    <div className="ls-kana">{l.kana}</div>
-                    <div className="ls-label">{l.label}</div>
-                    <div>
-                      <span className="ls-count">{l.count}</span>
-                      <span className="ls-unit">sessions</span>
+                {loadingStats ? (
+                  [1,2,3,4,5].map(i => (
+                    <div className="lesson-stat-row" key={i} style={{ gap: 12 }}>
+                      <div style={{ width: 90, height: 12, background: "var(--mist)", borderRadius: 4, animation: "shimmer 1.2s ease infinite" }} />
+                      <div style={{ flex: 1, height: 12, background: "var(--mist)", borderRadius: 4, animation: "shimmer 1.2s ease infinite" }} />
+                      <div style={{ width: 30, height: 12, background: "var(--mist)", borderRadius: 4, animation: "shimmer 1.2s ease infinite" }} />
                     </div>
+                  ))
+                ) : lessonStats.length === 0 ? (
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.82rem", color: "#8ab0b0", padding: "12px 0" }}>
+                    No sessions yet.
                   </div>
-                ))}
+                ) : (
+                  lessonStats.map(l => (
+                    <div className="lesson-stat-row" key={l.id}>
+                      <div className="ls-kana">{l.kana}</div>
+                      <div className="ls-label">{l.label}</div>
+                      <div>
+                        <span className="ls-count">{l.count}</span>
+                        <span className="ls-unit">sessions</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

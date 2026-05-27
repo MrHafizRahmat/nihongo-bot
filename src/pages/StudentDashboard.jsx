@@ -55,6 +55,8 @@ export default function StudentDashboard() {
           font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: #9a8880;
           display: flex; align-items: center; gap: 6px;
         }
+        .nav-btn { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; background: none; border: 1px solid var(--mist); border-radius: 5px; padding: 5px 12px; cursor: pointer; color: #b0a098; transition: color 0.2s, border-color 0.2s; }
+        .nav-btn:hover { color: var(--rose); border-color: rgba(212,105,122,0.3); }
         .user-avatar {
           width: 30px; height: 30px; border-radius: 50%;
           background: rgba(212,105,122,0.15);
@@ -187,6 +189,7 @@ export default function StudentDashboard() {
               <div className="user-avatar">🎓</div>
               {displayName}
             </div>
+            <button className="nav-btn" onClick={() => navigate("/chat/history")}>📜 History</button>
             <button className="logout-btn" onClick={handleLogout}>Log out</button>
           </div>
         </nav>

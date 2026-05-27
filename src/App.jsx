@@ -9,6 +9,7 @@ import RegisterStudents from "./pages/RegisterStudents";
 import TeacherMaterials from "./pages/TeacherMaterials";
 import StudentMaterials from "./pages/StudentMaterials";
 import ChatPage from "./pages/ChatPage";
+import ChatHistory from "./pages/ChatHistory";
 
 export default function App() {
   return (
@@ -55,6 +56,10 @@ export default function App() {
 
           <Route path="/chat" element={
             <ProtectedRoute requiredRole="student"><ChatPage /></ProtectedRoute>
+          } />
+
+          <Route path="/chat/history" element={
+            <ProtectedRoute requiredRole="student"><ChatHistory /></ProtectedRoute>
           } />
 
           {/* Fallback */}
