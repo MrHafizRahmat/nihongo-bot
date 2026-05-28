@@ -10,6 +10,8 @@ import TeacherMaterials from "./pages/TeacherMaterials";
 import StudentMaterials from "./pages/StudentMaterials";
 import ChatPage from "./pages/ChatPage";
 import ChatHistory from "./pages/ChatHistory";
+import StudentMessages from "./pages/StudentMessages";
+import TeacherMessages from "./pages/TeacherMessages";
 
 export default function App() {
   return (
@@ -49,7 +51,6 @@ export default function App() {
           <Route path="/dashboard/teacher/materials" element={
             <ProtectedRoute requiredRole="teacher"><TeacherMaterials /></ProtectedRoute>
           } />
-          
           <Route path="/dashboard/student/materials" element={
             <ProtectedRoute requiredRole="student"><StudentMaterials /></ProtectedRoute>
           } />
@@ -57,9 +58,15 @@ export default function App() {
           <Route path="/chat" element={
             <ProtectedRoute requiredRole="student"><ChatPage /></ProtectedRoute>
           } />
-
           <Route path="/chat/history" element={
             <ProtectedRoute requiredRole="student"><ChatHistory /></ProtectedRoute>
+          } />
+
+          <Route path="/messages/student" element={
+            <ProtectedRoute requiredRole="student"><StudentMessages /></ProtectedRoute>
+          } />
+          <Route path="/messages/teacher" element={
+            <ProtectedRoute requiredRole="teacher"><TeacherMessages /></ProtectedRoute>
           } />
 
           {/* Fallback */}

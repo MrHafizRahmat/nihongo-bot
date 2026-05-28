@@ -343,6 +343,9 @@ export default function TeacherDashboard() {
               <div className="user-avatar">📋</div>
               {displayName}
             </div>
+            <button className="nav-action-btn" onClick={() => navigate("/messages/teacher")}>
+              💬 Messages
+            </button>
             <button className="nav-action-btn" onClick={() => navigate("/dashboard/teacher/register")}>
               + Register Students
             </button>

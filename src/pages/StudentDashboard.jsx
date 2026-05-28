@@ -189,6 +189,9 @@ export default function StudentDashboard() {
               <div className="user-avatar">🎓</div>
               {displayName}
             </div>
+            <button className="nav-btn" onClick={() => navigate("/messages/student")}>
+              💬 Messages
+            </button>
             <button className="nav-btn" onClick={() => navigate("/chat/history")}>📜 History</button>
             <button className="logout-btn" onClick={handleLogout}>Log out</button>
           </div>
