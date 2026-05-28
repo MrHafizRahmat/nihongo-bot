@@ -19,6 +19,13 @@ export default function TeacherDashboard() {
   const [lessonStats, setLessonStats]   = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [levelFilter, setLevelFilter]   = useState("all");
+  const [historyStudent, setHistoryStudent] = useState(null);
+  const [sessions, setSessions]         = useState([]);
+  const [sessionMsgs, setSessionMsgs]   = useState([]);
+  const [activeSession, setActiveSession] = useState(null);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [loadingMsgs, setLoadingMsgs]   = useState(false);
 
   const handleLogout = async () => {
     await signOut();
@@ -96,6 +103,42 @@ export default function TeacherDashboard() {
     if (diffDays === 1) return "Yesterday";
     return `${diffDays} days ago`;
   }
+
+  async function openStudentHistory(student) {
+    setHistoryStudent(student);
+    setSessions([]);
+    setActiveSession(null);
+    setSessionMsgs([]);
+    setLoadingSessions(true);
+    const { data } = await supabase
+      .from("chat_sessions")
+      .select("*")
+      .eq("student_id", student.id)
+      .order("updated_at", { ascending: false });
+    setSessions(data || []);
+    setLoadingSessions(false);
+  }
+
+  async function openSession(session) {
+    setActiveSession(session);
+    setLoadingMsgs(true);
+    const { data } = await supabase
+      .from("chat_messages")
+      .select("role, content, created_at")
+      .eq("session_id", session.id)
+      .order("created_at", { ascending: true });
+    setSessionMsgs(data || []);
+    setLoadingMsgs(false);
+  }
+
+  const LESSON_COLORS = {
+    greeting: "#d4697a", self_intro: "#4a7ab0",
+    shopping: "#4a9090", food: "#c09050", directions: "#7a7abf",
+  };
+
+  const filteredStudents = levelFilter === "all"
+    ? students
+    : students.filter(s => s.level === levelFilter);
 
   return (
     <>
@@ -205,6 +248,49 @@ export default function TeacherDashboard() {
           border-radius: 100px; border: 1px solid var(--teal-light);
           color: var(--teal); background: rgba(74,144,144,0.07); flex-shrink: 0;
         }
+        /* Level filter */
+        .level-filter { display: flex; gap: 6px; margin-bottom: 12px; }
+        .lf-chip { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; padding: 4px 12px; border-radius: 100px; border: 1.5px solid var(--mist); background: white; cursor: pointer; color: #6a9090; transition: all 0.2s; }
+        .lf-chip.active { background: var(--charcoal); border-color: var(--charcoal); color: white; }
+        /* Clickable student row */
+        .student-row { cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
+        .student-row:hover { border-color: var(--teal-light); box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .student-row.active { border-color: var(--teal); background: rgba(74,144,144,0.04); }
+        .history-hint { font-family: 'DM Sans', sans-serif; font-size: 0.68rem; color: var(--teal); margin-top: 2px; }
+        /* History panel overlay */
+        .history-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); z-index: 50; }
+        .history-panel { position: fixed; top: 0; right: 0; bottom: 0; width: 740px; max-width: 96vw; background: #f4f9f9; border-left: 1.5px solid var(--mist); z-index: 51; display: grid; grid-template-columns: 260px 1fr; animation: slideIn 0.25s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .hp-list { border-right: 1px solid var(--mist); display: flex; flex-direction: column; }
+        .hp-header { padding: 18px 18px 14px; border-bottom: 1px solid var(--mist); background: var(--paper); }
+        .hp-student-name { font-family: 'Shippori Mincho', serif; font-size: 0.95rem; font-weight: 600; color: var(--ink); }
+        .hp-student-sub { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: #6a9090; margin-top: 2px; }
+        .hp-close { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; background: none; border: 1px solid var(--mist); border-radius: 5px; padding: 4px 10px; cursor: pointer; color: #6a9090; margin-top: 10px; display: block; }
+        .hp-close:hover { color: var(--teal); }
+        .hp-sessions { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .hp-session-item { background: white; border: 1.5px solid var(--mist); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: border-color 0.2s; }
+        .hp-session-item:hover { border-color: var(--teal-light); }
+        .hp-session-item.active { border-color: var(--teal); background: rgba(74,144,144,0.04); }
+        .hp-session-mode { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+        .hp-session-date { font-family: 'DM Sans', sans-serif; font-size: 0.68rem; color: #8ab0b0; margin-top: 3px; }
+        .hp-viewer { display: flex; flex-direction: column; }
+        .hp-viewer-header { padding: 16px 20px; border-bottom: 1px solid var(--mist); background: var(--paper); }
+        .hp-viewer-title { font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; color: var(--ink); }
+        .hp-viewer-sub { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: #6a9090; margin-top: 2px; }
+        .hp-viewer-body { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .hp-msg { display: flex; gap: 8px; max-width: 85%; }
+        .hp-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+        .hp-msg.assistant { align-self: flex-start; }
+        .hp-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; font-family: 'Noto Serif JP', serif; }
+        .hp-avatar.user { background: rgba(46,38,34,0.08); font-size: 0.8rem; }
+        .hp-avatar.assistant { border: 1.5px solid var(--teal-light); background: rgba(74,144,144,0.1); color: var(--teal); }
+        .hp-bubble { padding: 9px 12px; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; line-height: 1.6; word-break: break-word; }
+        .hp-bubble.user { background: var(--charcoal); color: white; border-bottom-right-radius: 3px; }
+        .hp-bubble.assistant { background: white; border: 1.5px solid var(--mist); border-bottom-left-radius: 3px; }
+        .hp-jp { font-family: 'Noto Serif JP', serif; font-size: 0.95rem; color: var(--ink); margin-bottom: 3px; }
+        .hp-romaji { font-size: 0.74rem; color: var(--teal); margin-bottom: 6px; }
+        .hp-note { font-size: 0.78rem; color: #5a7070; border-top: 1px solid var(--mist); padding-top: 6px; margin-top: 4px; }
+        .hp-empty { flex: 1; display: flex; align-items: center; justify-content: center; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; color: #8ab0b0; }
 
         /* Empty state */
         .empty-state {
@@ -288,8 +374,18 @@ export default function TeacherDashboard() {
             {/* Student list */}
             <div>
               <div className="section-label">
-                {loadingStudents ? "Loading students…" : `${students.length} Student${students.length !== 1 ? "s" : ""} Assigned`}
+                {loadingStudents ? "Loading students…" : `${filteredStudents.length} of ${students.length} Student${students.length !== 1 ? "s" : ""}`}
               </div>
+              {/* Level filter */}
+              {!loadingStudents && students.length > 0 && (
+                <div className="level-filter">
+                  {["all", "A0", "A1", "A2"].map(l => (
+                    <button key={l} className={`lf-chip ${levelFilter === l ? "active" : ""}`} onClick={() => setLevelFilter(l)}>
+                      {l === "all" ? "All" : l}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {loadingStudents ? (
                 <div className="student-list">
@@ -311,14 +407,20 @@ export default function TeacherDashboard() {
                     Register Students
                   </button>
                 </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon">🔍</div>
+                  <div className="empty-text">No {levelFilter} students found.</div>
+                </div>
               ) : (
                 <div className="student-list">
-                  {students.map(s => (
-                    <div className="student-row" key={s.id}>
+                  {filteredStudents.map(s => (
+                    <div className={`student-row ${historyStudent?.id === s.id ? "active" : ""}`} key={s.id} onClick={() => openStudentHistory(s)}>
                       <div className="student-avatar">🎓</div>
                       <div className="student-info">
                         <div className="student-name">{s.full_name || s.email}</div>
                         <div className="student-meta">{s.email}</div>
+                        <div className="history-hint">View chat history →</div>
                       </div>
                       <span className="level-badge">{s.level || "—"}</span>
                     </div>
@@ -360,6 +462,104 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </div>
+      {/* Student history panel */}
+      {historyStudent && (
+        <>
+          <div className="history-overlay" onClick={() => { setHistoryStudent(null); setActiveSession(null); }} />
+          <div className="history-panel">
+            {/* Session list */}
+            <div className="hp-list">
+              <div className="hp-header">
+                <div className="hp-student-name">{historyStudent.full_name || historyStudent.email}</div>
+                <div className="hp-student-sub">{historyStudent.email} · {historyStudent.level}</div>
+                <button className="hp-close" onClick={() => { setHistoryStudent(null); setActiveSession(null); }}>✕ Close</button>
+              </div>
+              <div className="hp-sessions">
+                {loadingSessions ? (
+                  [1,2,3].map(i => (
+                    <div key={i} style={{ background: "white", border: "1.5px solid var(--mist)", borderRadius: 8, padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+                      <div className="shimmer" style={{ height: 11, width: "70%", borderRadius: 4 }} />
+                      <div className="shimmer" style={{ height: 9, width: "45%", borderRadius: 4 }} />
+                    </div>
+                  ))
+                ) : sessions.length === 0 ? (
+                  <div style={{ padding: "24px 12px", fontFamily: "'DM Sans', sans-serif", fontSize: "0.8rem", color: "#8ab0b0", textAlign: "center" }}>
+                    No sessions yet for this student.
+                  </div>
+                ) : (
+                  sessions.map(s => {
+                    const meta = LESSON_META[s.lesson_mode] || {};
+                    const color = LESSON_COLORS[s.lesson_mode] || "#4a9090";
+                    return (
+                      <div key={s.id} className={`hp-session-item ${activeSession?.id === s.id ? "active" : ""}`} onClick={() => openSession(s)}>
+                        <div className="hp-session-mode" style={{ color }}>
+                          <span>{s.lesson_mode === "greeting" ? "👋" : s.lesson_mode === "self_intro" ? "🙋" : s.lesson_mode === "shopping" ? "🛒" : s.lesson_mode === "food" ? "🍱" : "🗺️"}</span>
+                          {meta.label || s.lesson_mode}
+                        </div>
+                        <div className="hp-session-date">{new Date(s.updated_at || s.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Message viewer */}
+            <div className="hp-viewer">
+              {!activeSession ? (
+                <div className="hp-empty">← Select a session to read it</div>
+              ) : (
+                <>
+                  <div className="hp-viewer-header">
+                    <div className="hp-viewer-title">{LESSON_META[activeSession.lesson_mode]?.label || activeSession.lesson_mode}</div>
+                    <div className="hp-viewer-sub">{new Date(activeSession.updated_at || activeSession.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })} · {sessionMsgs.length} messages</div>
+                  </div>
+                  <div className="hp-viewer-body">
+                    {loadingMsgs ? (
+                      [1,2,3].map(i => (
+                        <div key={i} style={{ display: "flex", gap: 8, alignSelf: i % 2 === 0 ? "flex-end" : "flex-start", maxWidth: "75%" }}>
+                          <div className="shimmer" style={{ width: 28, height: 28, borderRadius: "50%", flexShrink: 0 }} />
+                          <div className="shimmer" style={{ height: 44, flex: 1, borderRadius: 10 }} />
+                        </div>
+                      ))
+                    ) : (
+                      sessionMsgs.map((msg, i) => {
+                        if (msg.role === "user") {
+                          return (
+                            <div key={i} className="hp-msg user">
+                              <div className="hp-avatar user">🎓</div>
+                              <div className="hp-bubble user">{msg.content}</div>
+                            </div>
+                          );
+                        }
+                        // Parse assistant message
+                        const extractBlock = (tag, text) => {
+                          const m = text.match(new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\/${tag}\\]`, "i"));
+                          return m ? m[1].trim() : null;
+                        };
+                        const jp = extractBlock("JAPANESE", msg.content);
+                        const ro = extractBlock("ROMAJI", msg.content);
+                        const no = extractBlock("NOTE", msg.content);
+                        return (
+                          <div key={i} className="hp-msg assistant">
+                            <div className="hp-avatar assistant">ゆ</div>
+                            <div className="hp-bubble assistant">
+                              {jp && <div className="hp-jp">{jp}</div>}
+                              {ro && <div className="hp-romaji">{ro}</div>}
+                              {no && <div className="hp-note">{no}</div>}
+                              {!jp && !ro && !no && <div>{msg.content}</div>}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
