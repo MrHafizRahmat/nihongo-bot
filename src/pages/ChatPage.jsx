@@ -5,19 +5,19 @@ import { useAuth } from "../context/AuthContext";
 import { parseResponse, toHiragana, prewarmTokenizer } from "../lib/japaneseUtils";
 
 const LESSONS = [
-  { id: "greeting",   emoji: "👋", label: "Greetings",        kana: "あいさつ" },
-  { id: "self_intro", emoji: "🙋", label: "Self Introduction", kana: "じこしょうかい" },
-  { id: "shopping",   emoji: "🛒", label: "Shopping",          kana: "かいもの" },
-  { id: "food",       emoji: "🍱", label: "Ordering Food",     kana: "たべもの" },
-  { id: "directions", emoji: "🗺️", label: "Directions",       kana: "みちあんない" },
+  { id: "greeting",   emoji: "👋", label: "Greetings",          kana: "あいさつ" },
+  { id: "self_intro", emoji: "🙋", label: "Self Introduction",   kana: "じこしょうかい" },
+  { id: "shopping",   emoji: "❓", label: "Enquiry",             kana: "しつもん" },
+  { id: "food",       emoji: "🍜", label: "Restaurant",          kana: "レストラン" },
+  { id: "directions", emoji: "📞", label: "Invitation",          kana: "さそい" },
 ];
 
 const CHARACTER_PROFILES = {
-  greeting:   { name: "やまだ ゆい", nameEn: "Yamada Yui",   initial: "ゆ", age: "20さい", role: "おちゃのみずじょしだいがく 2ねんせい", traits: "あにめ好き · ばれーぼーる · YOASOBI", color: "#d4697a", scene: "📍 Campus entrance — first meeting", desc: "ゆい has bumped into you near the university entrance for the first time." },
-  self_intro: { name: "たなか けんじ", nameEn: "Tanaka Kenji", initial: "け", age: "22さい", role: "とうきょうだいがく 4ねんせい (せんぱい)", traits: "ギター · えいが · おおさかしゅっしん", color: "#4a7ab0", scene: "📍 University orientation", desc: "けんじ is a friendly senior who sits next to you at orientation." },
-  shopping:   { name: "すずき はな",  nameEn: "Suzuki Hana",  initial: "は", age: "35さい", role: "コンビニ てんいん", traits: "7ねんのけいけん · よこはましゅっしん", color: "#4a9090", scene: "📍 Convenience store", desc: "はな is the shopkeeper. You are the customer." },
-  food:       { name: "さとう りょう", nameEn: "Sato Ryo",    initial: "り", age: "28さい", role: "らーめんや てんいん", traits: "ふくおかしゅっしん · りょうりずき · エネルギッシュ", color: "#c09050", scene: "📍 Ramen restaurant", desc: "りょう is your enthusiastic waiter at a popular ramen shop." },
-  directions: { name: "きむら あおい", nameEn: "Kimura Aoi",  initial: "あ", age: "19さい", role: "わせだだいがく 1ねんせい", traits: "ながのしゅっしん · はずかしがりや · まじめ", color: "#7a7abf", scene: "📍 Street near campus", desc: "あおい is a lost first-year student who needs your help finding the station." },
+  greeting:   { name: "やまだ ゆい", nameEn: "Yamada Yui",   initial: "ゆ", age: "にじゅっさい", role: "おちゃのみずじょしだいがく にねんせい", traits: "あにめ · ばれーぼーる · YOASOBI", color: "#d4697a", scene: "📍 Campus — Greetings practice", desc: "Practice everyday greetings with ゆい — こんにちは、おげんきですか and more." },
+  self_intro: { name: "たなか けんじ", nameEn: "Tanaka Kenji", initial: "け", age: "にじゅうにさい", role: "とうきょうだいがく よねんせい (せんぱい)", traits: "おんがく · えいが · おおさかしゅっしん", color: "#4a7ab0", scene: "📍 University orientation", desc: "Introduce yourself to けんじ — name, hometown, major, and hobbies." },
+  shopping:   { name: "すずき はな",  nameEn: "Suzuki Hana",  initial: "は", age: "さんじゅうごさい", role: "コンビニ てんいん", traits: "ななねんのけいけん · よこはましゅっしん", color: "#4a9090", scene: "📍 Convenience store — Enquiry practice", desc: "Practice asking 'what is this?' and 'whose is this?' with はな." },
+  food:       { name: "さとう りょう", nameEn: "Sato Ryo",    initial: "り", age: "にじゅうはっさい", role: "にほんりょうりレストラン てんいん", traits: "ふくおかしゅっしん · りょうりずき", color: "#c09050", scene: "📍 Japanese restaurant", desc: "Order food and drinks from りょう using 〇〇をください and syllabus food vocabulary." },
+  directions: { name: "きむら あおい", nameEn: "Kimura Aoi",  initial: "あ", age: "じゅうきゅうさい", role: "わせだだいがく いちねんせい", traits: "ながのしゅっしん · はずかしがりや · まじめ", color: "#7a7abf", scene: "📍 Phone call — Invitation practice", desc: "あおい calls to invite you to an activity. Accept or politely decline!" },
 };
 
 // ── Structured assistant bubble ──────────────────────────────
@@ -224,6 +224,7 @@ export default function ChatPage() {
   const initialMode = searchParams.get("mode") || "greeting";
   const [lessonMode, setLessonMode]       = useState(initialMode);
   const [sessionId, setSessionId]         = useState(null);
+  const [authSession, setAuthSession]     = useState(null);
   const [messages, setMessages]           = useState([]);
   const [input, setInput]                 = useState("");
   const [loading, setLoading]             = useState(false);
@@ -233,6 +234,17 @@ export default function ChatPage() {
   const [showMaterials, setShowMaterials] = useState(false);
 
   useEffect(() => { prewarmTokenizer(); }, []);
+
+  // Store auth session once — avoids calling getSession() on every message
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setAuthSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setTimeout(async () =>{
+        setAuthSession(session);
+      }, 0)
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   // Reset when lesson mode changes
   useEffect(() => {
@@ -252,10 +264,9 @@ export default function ChatPage() {
     setStarting(true);
     setError("");
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("chat", {
         body: { lesson_mode: lessonMode, start_session: true },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${authSession?.access_token}` },
       });
       if (res.error) throw new Error(res.error.message);
       const { reply, session_id: newSessionId } = res.data;
@@ -287,37 +298,49 @@ export default function ChatPage() {
   async function sendMessage() {
     const text = input.trim();
     if (!text || loading) return;
+    console.log("[1] sendMessage called:", { text, lessonMode, sessionId });
+ 
     setInput("");
     setError("");
-
+ 
     const userMsg = { role: "user", content: text, id: Date.now().toString() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
-
+ 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log("[2] authSession token:", authSession?.access_token?.slice(0, 20) + "...");
+ 
       const res = await supabase.functions.invoke("chat", {
-        body: { message: text, lesson_mode: lessonMode, session_id: sessionId },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { message: text, lesson_mode: lessonMode, session_id: sessionId }
       });
+      console.log("[3] function response received:", { error: res.error, hasData: !!res.data });
+ 
       if (res.error) throw new Error(res.error.message);
-
+ 
       const { reply, session_id: newSessionId } = res.data;
+      console.log("[4] reply length:", reply?.length, "newSessionId:", newSessionId);
+ 
       if (newSessionId && !sessionId) setSessionId(newSessionId);
-
+ 
       let parsed = parseResponse(reply);
+      console.log("[5] parsed:", { japanese: parsed.japanese?.slice(0, 30), romaji: parsed.romaji?.slice(0, 30), hasNote: !!parsed.note });
+ 
       if (parsed.japanese) parsed.japanese = await toHiragana(parsed.japanese);
-
+      console.log("[6] toHiragana done");
+ 
       setMessages(prev => [...prev, {
         role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now()
       }]);
-
+      console.log("[7] message added to state");
+ 
     } catch (err) {
+      console.error("[ERR] sendMessage failed:", err.message);
       setError("Something went wrong. Please try again.");
       setMessages(prev => prev.filter(m => m.id !== userMsg.id));
     } finally {
       setLoading(false);
       inputRef.current?.focus();
+      console.log("[8] sendMessage complete");
     }
   }
 

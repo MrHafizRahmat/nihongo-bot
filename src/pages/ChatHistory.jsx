@@ -7,9 +7,9 @@ import { parseResponse } from "../lib/japaneseUtils";
 const LESSON_META = {
   greeting:   { emoji: "👋", label: "Greetings",        kana: "あいさつ",       color: "#d4697a" },
   self_intro: { emoji: "🙋", label: "Self Introduction", kana: "じこしょうかい", color: "#4a7ab0" },
-  shopping:   { emoji: "🛒", label: "Shopping",          kana: "かいもの",       color: "#4a9090" },
-  food:       { emoji: "🍱", label: "Ordering Food",     kana: "たべもの",       color: "#c09050" },
-  directions: { emoji: "🗺️", label: "Directions",       kana: "みちあんない",   color: "#7a7abf" },
+  shopping:   { emoji: "❓", label: "Enquiry",           kana: "しつもん",       color: "#4a9090" },
+  food:       { emoji: "🍜", label: "Restaurant",        kana: "レストラン",     color: "#c09050" },
+  directions: { emoji: "📞", label: "Invitation",        kana: "さそい",         color: "#7a7abf" },
 };
 
 const CHARACTER_NAME = {

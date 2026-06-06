@@ -3,34 +3,38 @@
 // returned by the AI into a clean object for rendering.
 
 export function parseResponse(raw) {
-  const extract = (tag, text) => {
-    // Strict match first
-    const strict = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\s*\\/\\s*${tag}\\s*\\]`, "i");
-    const strictMatch = text.match(strict);
-    if (strictMatch) return strictMatch[1].trim();
+  const blocks = {};
 
-    // Fuzzy match — closing tag starts with [/ and contains most of the tag name
-    // Handles typos like [/JAPANEI], [/ROMAJ], [/NOT], etc.
-    const fuzzy = new RegExp(`\\[${tag}\\]([\\s\\S]*?)\\[\\s*\\/[A-Z_\\s]{1,10}\\]`, "i");
-    const fuzzyMatch = text.match(fuzzy);
-    if (fuzzyMatch) return fuzzyMatch[1].trim();
+  // 1. strict pass (well-formed tags)
+  const strict = /\[([A-Z_]+)\]([\s\S]*?)\[\/\1\]/gi;
 
-    // Fallback — grab everything after [TAG] to end of string
-    const loose = new RegExp(`\\[${tag}\\]([\\s\\S]*)$`, "i");
-    const looseMatch = text.match(loose);
-    return looseMatch ? looseMatch[1].trim() : null;
-  };
-
-  const japanese = extract("JAPANESE", raw);
-  const romaji   = extract("ROMAJI", raw);
-  const note     = extract("NOTE", raw);
-
-  // If the response doesn't follow the format at all, treat it as a plain note
-  if (!japanese && !romaji && !note) {
-    return { japanese: null, romaji: null, note: raw.trim(), raw };
+  let match;
+  while ((match = strict.exec(raw))) {
+    const tag = match[1].toUpperCase();
+    const content = match[2].replace(/\[\/[A-Z_]+\]/g, "").trim();
+    blocks[tag] = content;
   }
 
-  return { japanese, romaji, note, raw };
+  // 2. fallback pass (broken tags)
+  const loose = /\[([A-Z_]+)\]([\s\S]*?)(?=\[[A-Z_]+]|$)/gi;
+
+  while ((match = loose.exec(raw))) {
+    const tag = match[1].toUpperCase();
+
+    if (!blocks[tag]) {
+      const content = match[2].replace(/\[\/[A-Z_]+\]/g, "").trim();
+      blocks[tag] = content;
+    }
+  }
+
+  const japanKey = Object.keys(blocks).find(k => k.startsWith("JAPAN"));
+
+  return {
+    japanese: japanKey ? blocks[japanKey] : null,
+    romaji: blocks.ROMAJI ?? null,
+    note: blocks.NOTE ?? null,
+    raw
+  };
 }
 
 

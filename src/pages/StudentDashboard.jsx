@@ -2,11 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const lessons = [
-  { id: "greeting", emoji: "👋", label: "Greetings", kana: "あいさつ", color: "#d4697a" },
-  { id: "self_intro", emoji: "🙋", label: "Self Introduction", kana: "じこしょうかい", color: "#c09050" },
-  { id: "shopping", emoji: "🛒", label: "Shopping", kana: "かいもの", color: "#4a9090" },
-  { id: "food", emoji: "🍱", label: "Ordering Food", kana: "たべもの", color: "#7a7abf" },
-  { id: "directions", emoji: "🗺️", label: "Directions", kana: "みちあんない", color: "#8a9a50" },
+  { id: "greeting",   emoji: "👋", label: "Greetings",        kana: "あいさつ",       color: "#d4697a" },
+  { id: "self_intro", emoji: "🙋", label: "Self Introduction", kana: "じこしょうかい", color: "#4a7ab0" },
+  { id: "shopping",   emoji: "❓", label: "Enquiry",           kana: "しつもん",       color: "#4a9090" },
+  { id: "food",       emoji: "🍜", label: "Restaurant",        kana: "レストラン",     color: "#c09050" },
+  { id: "directions", emoji: "📞", label: "Invitation",        kana: "さそい",         color: "#7a7abf" },
 ];
 
 export default function StudentDashboard() {
@@ -216,7 +216,7 @@ export default function StudentDashboard() {
               <div
                 key={l.label}
                 className="lesson-card"
-                style={{ "--accent": l.color }}
+                style={{ "--accent": l.color, cursor: "pointer" }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = l.color}
                 onMouseLeave={e => e.currentTarget.style.borderColor = ""}
                 onClick={() => navigate(`/chat?mode=${l.id}`)}
