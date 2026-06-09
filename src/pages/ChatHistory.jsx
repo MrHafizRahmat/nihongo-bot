@@ -20,6 +20,66 @@ const CHARACTER_NAME = {
   directions: "きむら あおい",
 };
 
+// Feedback card for history view
+function FeedbackCard({ feedback }) {
+  return (
+    <div className="feedback-card">
+      <div className="feedback-header">
+        <div className="feedback-icon">📝</div>
+        <div>
+          <div className="feedback-title">Session Feedback</div>
+          <div className="feedback-subtitle">JFS A0 · Language Assessment</div>
+        </div>
+      </div>
+      <div className="feedback-sections">
+        {feedback.vocabulary_notes && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">📖 Vocabulary</div>
+            <div className="feedback-section-body">{feedback.vocabulary_notes}</div>
+          </div>
+        )}
+        {feedback.grammar_notes && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">🔤 Grammar</div>
+            <div className="feedback-section-body">{feedback.grammar_notes}</div>
+          </div>
+        )}
+        {feedback.effort_notes && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">⭐ Effort</div>
+            <div className="feedback-section-body">{feedback.effort_notes}</div>
+          </div>
+        )}
+        {feedback.corrections && feedback.corrections.length > 0 && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">✏️ Corrections</div>
+            <div className="feedback-corrections">
+              {feedback.corrections.map((c, i) => (
+                <div className="feedback-correction-item" key={i}>
+                  <div className="correction-row">
+                    <span className="correction-label wrong">✗</span>
+                    <span className="correction-wrong">{c.original}</span>
+                  </div>
+                  <div className="correction-row">
+                    <span className="correction-label right">✓</span>
+                    <span className="correction-right">{c.corrected}</span>
+                  </div>
+                  {c.explanation && (
+                    <div className="correction-explanation">{c.explanation}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {feedback.encouragement && (
+          <div className="feedback-encouragement">{feedback.encouragement}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Read-only bubble for replaying messages
 function ReplayBubble({ msg }) {
   const [expanded, setExpanded] = useState(false);
@@ -105,6 +165,7 @@ export default function ChatHistory() {
   const [activeSession, setActive]  = useState(null);
   const [messages, setMessages]     = useState([]);
   const [msgLoading, setMsgLoading] = useState(false);
+  const [feedback, setFeedback]     = useState(null);
   const [filter, setFilter]         = useState("all");
 
   const displayName = profile?.full_name || "Student";
@@ -133,12 +194,23 @@ export default function ChatHistory() {
   async function openSession(session) {
     setActive(session);
     setMsgLoading(true);
+    setFeedback(null);
+
     const { data } = await supabase
       .from("chat_messages")
       .select("role, content, created_at")
       .eq("session_id", session.id)
       .order("created_at", { ascending: true });
     setMessages(data || []);
+
+    // Fetch feedback for this session if it exists
+    const { data: fb } = await supabase
+      .from("session_feedback")
+      .select("*")
+      .eq("session_id", session.id)
+      .maybeSingle();
+    setFeedback(fb || null);
+
     setMsgLoading(false);
   }
 
@@ -240,6 +312,27 @@ export default function ChatHistory() {
         .rb-toggle { display: flex; align-items: center; gap: 4px; margin-top: 6px; font-family: 'DM Sans', sans-serif; font-size: 0.68rem; font-weight: 500; color: #b0a098; background: none; border: 1px solid var(--mist); border-radius: 100px; padding: 2px 8px; cursor: pointer; transition: color 0.2s, border-color 0.2s; width: fit-content; }
         .rb-toggle:hover, .rb-toggle.open { color: var(--rose); border-color: var(--rose-light); }
         .rb-extra { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--mist); }
+
+        /* Feedback card */
+        .feedback-card { background: var(--paper); border: 2px solid var(--rose-light); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+        .feedback-header { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--mist); }
+        .feedback-icon { font-size: 1.6rem; }
+        .feedback-title { font-family: 'Shippori Mincho', serif; font-size: 0.95rem; font-weight: 600; color: var(--ink); }
+        .feedback-subtitle { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: var(--rose); margin-top: 2px; }
+        .feedback-sections { display: flex; flex-direction: column; gap: 12px; }
+        .feedback-section { display: flex; flex-direction: column; gap: 4px; }
+        .feedback-section-label { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 600; color: var(--charcoal); text-transform: uppercase; letter-spacing: 0.08em; }
+        .feedback-section-body { font-family: 'DM Sans', sans-serif; font-size: 0.83rem; color: #5a4a44; line-height: 1.65; }
+        .feedback-corrections { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+        .feedback-correction-item { background: white; border: 1px solid var(--mist); border-radius: 7px; padding: 8px 10px; display: flex; flex-direction: column; gap: 3px; }
+        .correction-row { display: flex; align-items: baseline; gap: 7px; }
+        .correction-label { font-size: 0.72rem; font-weight: 700; width: 14px; flex-shrink: 0; }
+        .correction-label.wrong { color: #d4697a; }
+        .correction-label.right { color: #4a9090; }
+        .correction-wrong { font-family: 'Noto Serif JP', serif; font-size: 0.86rem; color: #c08080; text-decoration: line-through; }
+        .correction-right { font-family: 'Noto Serif JP', serif; font-size: 0.86rem; color: #4a9090; }
+        .correction-explanation { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: #9a8880; margin-top: 3px; padding-top: 3px; border-top: 1px solid var(--mist); }
+        .feedback-encouragement { background: rgba(212,105,122,0.06); border: 1px solid rgba(212,105,122,0.18); border-radius: 8px; padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: 0.84rem; color: var(--charcoal); line-height: 1.6; }
 
         /* Viewer empty */
         .viewer-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #c0b0a8; }
@@ -350,9 +443,14 @@ export default function ChatHistory() {
                       </div>
                     ))
                   ) : (
-                    messages.map((msg, i) => (
-                      <ReplayBubble key={i} msg={msg} />
-                    ))
+                    <>
+                      {messages.map((msg, i) => (
+                        <ReplayBubble key={i} msg={msg} />
+                      ))}
+                      {feedback && (
+                        <FeedbackCard feedback={feedback} />
+                      )}
+                    </>
                   )}
                 </div>
               </>

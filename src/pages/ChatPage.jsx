@@ -20,6 +20,76 @@ const CHARACTER_PROFILES = {
   directions: { name: "きむら あおい", nameEn: "Kimura Aoi",  initial: "あ", age: "じゅうきゅうさい", role: "わせだだいがく いちねんせい", traits: "ながのしゅっしん · はずかしがりや · まじめ", color: "#7a7abf", scene: "📍 Phone call — Invitation practice", desc: "あおい calls to invite you to an activity. Accept or politely decline!" },
 };
 
+// ── Feedback card ────────────────────────────────────────────
+function FeedbackCard({ feedback, lessonMode }) {
+  const LESSON_LABELS = {
+    greeting: "Greetings", self_intro: "Self Introduction",
+    shopping: "Enquiry", food: "Restaurant", directions: "Invitation",
+  };
+
+  return (
+    <div className="feedback-card">
+      <div className="feedback-header">
+        <div className="feedback-icon">📝</div>
+        <div>
+          <div className="feedback-title">Session Feedback</div>
+          <div className="feedback-subtitle">{LESSON_LABELS[lessonMode] || lessonMode} · JFS A0</div>
+        </div>
+      </div>
+
+      <div className="feedback-sections">
+        {feedback.vocabulary_notes && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">📖 Vocabulary</div>
+            <div className="feedback-section-body">{feedback.vocabulary_notes}</div>
+          </div>
+        )}
+        {feedback.grammar_notes && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">🔤 Grammar</div>
+            <div className="feedback-section-body">{feedback.grammar_notes}</div>
+          </div>
+        )}
+        {feedback.effort_notes && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">⭐ Effort</div>
+            <div className="feedback-section-body">{feedback.effort_notes}</div>
+          </div>
+        )}
+
+        {feedback.corrections && feedback.corrections.length > 0 && (
+          <div className="feedback-section">
+            <div className="feedback-section-label">✏️ Corrections</div>
+            <div className="feedback-corrections">
+              {feedback.corrections.map((c, i) => (
+                <div className="feedback-correction-item" key={i}>
+                  <div className="correction-row">
+                    <span className="correction-label wrong">✗</span>
+                    <span className="correction-wrong">{c.original}</span>
+                  </div>
+                  <div className="correction-row">
+                    <span className="correction-label right">✓</span>
+                    <span className="correction-right">{c.corrected}</span>
+                  </div>
+                  {c.explanation && (
+                    <div className="correction-explanation">{c.explanation}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {feedback.encouragement && (
+          <div className="feedback-encouragement">
+            {feedback.encouragement}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Structured assistant bubble ──────────────────────────────
 function AssistantBubble({ parsed }) {
   const { japanese, romaji, note } = parsed;
@@ -230,6 +300,8 @@ export default function ChatPage() {
   const [loading, setLoading]             = useState(false);
   const [starting, setStarting]           = useState(false);
   const [sessionActive, setSessionActive] = useState(false);
+  const [sessionDone, setSessionDone]     = useState(false);
+  const [feedback, setFeedback]           = useState(null);
   const [error, setError]                 = useState("");
   const [showMaterials, setShowMaterials] = useState(false);
 
@@ -251,6 +323,8 @@ export default function ChatPage() {
     setSessionId(null);
     setMessages([]);
     setSessionActive(false);
+    setSessionDone(false);
+    setFeedback(null);
     setError("");
     setShowMaterials(false);
   }, [lessonMode]);
@@ -291,22 +365,24 @@ export default function ChatPage() {
     setSessionId(null);
     setMessages([]);
     setSessionActive(false);
+    setSessionDone(false);
+    setFeedback(null);
     setError("");
   }
 
   // ── Send message ─────────────────────────────────────────────
   async function sendMessage() {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || sessionDone) return;
     console.log("[1] sendMessage called:", { text, lessonMode, sessionId });
- 
+
     setInput("");
     setError("");
- 
+
     const userMsg = { role: "user", content: text, id: Date.now().toString() };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
- 
+
     try {
       console.log("[2] authSession token:", authSession?.access_token?.slice(0, 20) + "...");
  
@@ -326,25 +402,32 @@ export default function ChatPage() {
         ),
       ]);
       console.log("[3] function response received:", { error: res.error, hasData: !!res.data });
- 
+
       if (res.error) throw new Error(res.error.message);
- 
-      const { reply, session_id: newSessionId } = res.data;
-      console.log("[4] reply length:", reply?.length, "newSessionId:", newSessionId);
- 
+
+      const { reply, session_id: newSessionId, feedback: fb, session_complete } = res.data;
+      console.log("[4] reply length:", reply?.length, "newSessionId:", newSessionId, "session_complete:", session_complete);
+
       if (newSessionId && !sessionId) setSessionId(newSessionId);
- 
+
       let parsed = parseResponse(reply);
       console.log("[5] parsed:", { japanese: parsed.japanese?.slice(0, 30), romaji: parsed.romaji?.slice(0, 30), hasNote: !!parsed.note });
- 
+
       if (parsed.japanese) parsed.japanese = await toHiragana(parsed.japanese);
       console.log("[6] toHiragana done");
- 
+
       setMessages(prev => [...prev, {
         role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now()
       }]);
       console.log("[7] message added to state");
- 
+
+      // Handle session completion + feedback
+      if (session_complete) {
+        setSessionDone(true);
+        if (fb) setFeedback(fb);
+        console.log("[7b] session complete, feedback:", !!fb);
+      }
+
     } catch (err) {
       console.error("[ERR] sendMessage failed:", err.message);
 
@@ -359,7 +442,7 @@ export default function ChatPage() {
       );
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
+      if (!sessionDone) inputRef.current?.focus();
       console.log("[8] sendMessage complete");
     }
   }
@@ -458,6 +541,33 @@ export default function ChatPage() {
         .bubble-toggle:hover, .bubble-toggle.open { color: var(--rose); border-color: var(--rose-light); }
         .bubble-toggle-icon { font-size: 0.6rem; }
         .bubble-extra { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--mist); display: flex; flex-direction: column; gap: 0; }
+
+        /* Feedback card */
+        .feedback-card { background: var(--paper); border: 2px solid var(--rose-light); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; align-self: stretch; margin-top: 8px; }
+        .feedback-header { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--mist); }
+        .feedback-icon { font-size: 1.8rem; }
+        .feedback-title { font-family: 'Shippori Mincho', serif; font-size: 1.05rem; font-weight: 600; color: var(--ink); }
+        .feedback-subtitle { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; color: var(--rose); margin-top: 2px; letter-spacing: 0.06em; }
+        .feedback-sections { display: flex; flex-direction: column; gap: 14px; }
+        .feedback-section { display: flex; flex-direction: column; gap: 5px; }
+        .feedback-section-label { font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 600; color: var(--charcoal); text-transform: uppercase; letter-spacing: 0.08em; }
+        .feedback-section-body { font-family: 'DM Sans', sans-serif; font-size: 0.86rem; color: #5a4a44; line-height: 1.7; }
+        .feedback-corrections { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+        .feedback-correction-item { background: white; border: 1px solid var(--mist); border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+        .correction-row { display: flex; align-items: baseline; gap: 8px; }
+        .correction-label { font-size: 0.75rem; font-weight: 700; width: 16px; flex-shrink: 0; }
+        .correction-label.wrong { color: #d4697a; }
+        .correction-label.right { color: #4a9090; }
+        .correction-wrong { font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: #c08080; text-decoration: line-through; }
+        .correction-right { font-family: 'Noto Serif JP', serif; font-size: 0.9rem; color: #4a9090; }
+        .correction-explanation { font-family: 'DM Sans', sans-serif; font-size: 0.78rem; color: #9a8880; margin-top: 4px; padding-top: 4px; border-top: 1px solid var(--mist); }
+        .feedback-encouragement { background: rgba(212,105,122,0.06); border: 1px solid rgba(212,105,122,0.2); border-radius: 10px; padding: 12px 14px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: var(--charcoal); line-height: 1.65; }
+
+        /* Session done banner */
+        .session-done-banner { align-self: stretch; background: var(--ink); border-radius: 10px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .session-done-text { font-family: 'DM Sans', sans-serif; font-size: 0.86rem; color: rgba(255,255,255,0.8); }
+        .session-done-btn { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 500; background: var(--rose); color: white; border: none; border-radius: 6px; padding: 8px 18px; cursor: pointer; white-space: nowrap; transition: opacity 0.2s; }
+        .session-done-btn:hover { opacity: 0.85; }
 
         /* Typing */
         .typing { display: flex; gap: 10px; align-self: flex-start; }
@@ -588,6 +698,20 @@ export default function ChatPage() {
               )}
 
               {error && <div className="error-bar">⚠ {error}</div>}
+
+              {/* Feedback card — appears at bottom of chat */}
+              {feedback && (
+                <FeedbackCard feedback={feedback} lessonMode={lessonMode} />
+              )}
+
+              {/* Session done banner */}
+              {sessionDone && (
+                <div className="session-done-banner">
+                  <span className="session-done-text">✅ Session complete! Great work practising today.</span>
+                  <button className="session-done-btn" onClick={resetSession}>↺ Start New Session</button>
+                </div>
+              )}
+
               <div ref={bottomRef} />
             </div>
 
@@ -597,14 +721,18 @@ export default function ChatPage() {
                   ref={inputRef}
                   className="input-box"
                   rows={1}
-                  placeholder={`Reply to ${CHARACTER_PROFILES[lessonMode]?.name || ""}… type in Japanese or English`}
+                  placeholder={sessionDone ? "Session complete — start a new session to continue" : `Reply to ${CHARACTER_PROFILES[lessonMode]?.name || ""}… type in Japanese or English`}
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  disabled={sessionDone}
+                  style={sessionDone ? { opacity: 0.5, cursor: "not-allowed" } : {}}
                 />
-                <button className="send-btn" onClick={sendMessage} disabled={loading || !input.trim()}>➤</button>
+                <button className="send-btn" onClick={sendMessage} disabled={loading || !input.trim() || sessionDone}>➤</button>
               </div>
-              <div className="input-hint">Press Enter to send · Shift+Enter for new line</div>
+              <div className="input-hint">
+                {sessionDone ? "Session ended · Use ↺ Start New Session to practice again" : "Press Enter to send · Shift+Enter for new line"}
+              </div>
             </div>
           </>
         )}
