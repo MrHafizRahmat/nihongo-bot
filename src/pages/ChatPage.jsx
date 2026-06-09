@@ -310,9 +310,21 @@ export default function ChatPage() {
     try {
       console.log("[2] authSession token:", authSession?.access_token?.slice(0, 20) + "...");
  
-      const res = await supabase.functions.invoke("chat", {
-        body: { message: text, lesson_mode: lessonMode, session_id: sessionId }
-      });
+      const res = await Promise.race([
+        supabase.functions.invoke("chat", {
+          body: {
+            message: text,
+            lesson_mode: lessonMode,
+            session_id: sessionId,
+          },
+        }),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Request timed out")),
+            15000
+          )
+        ),
+      ]);
       console.log("[3] function response received:", { error: res.error, hasData: !!res.data });
  
       if (res.error) throw new Error(res.error.message);
@@ -335,8 +347,16 @@ export default function ChatPage() {
  
     } catch (err) {
       console.error("[ERR] sendMessage failed:", err.message);
-      setError("Something went wrong. Please try again.");
-      setMessages(prev => prev.filter(m => m.id !== userMsg.id));
+
+      if (err.message === "Request timed out") {
+        setError("The chatbot is taking too long to respond.");
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
+
+      setMessages(prev =>
+        prev.filter(m => m.id !== userMsg.id)
+      );
     } finally {
       setLoading(false);
       inputRef.current?.focus();
