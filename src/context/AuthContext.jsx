@@ -7,16 +7,28 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   // loading = true until we know the auth state AND profile is fetched
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function fetchProfile(userId) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
-    if (!error && data) setProfile(data);
-    return data; // return so callers can use it immediately
+    try {
+      console.log("Fetching profile:", userId);
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      console.log("Profile result:", { data, error });
+
+      if (error) throw error;
+
+      setProfile(data);
+      return data;
+    } catch (err) {
+      console.error("fetchProfile failed:", err);
+      return null;
+    }
   }
 
   useEffect(() => {
@@ -24,15 +36,21 @@ export function AuthProvider({ children }) {
     // so we use it as the single source of truth — no separate getSession needed.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-          await fetchProfile(currentUser.id);
-        } else {
-          setProfile(null);
+        try {
+          const currentUser = session?.user ?? null;
+
+          setUser(currentUser);
+
+          if (currentUser) {
+            await fetchProfile(currentUser.id);
+          } else {
+            setProfile(null);
+          }
+        } catch (err) {
+          console.error("Auth init failed:", err);
+        } finally {
+          setLoading(false);
         }
-        // Only mark loading done AFTER profile is fetched
-        setLoading(false);
       }
     );
 
