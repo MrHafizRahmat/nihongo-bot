@@ -339,8 +339,8 @@ export default function ChatPage() {
     try {
       const res = await supabase.functions.invoke("chat", {
         body: { lesson_mode: lessonMode, start_session: true },
-        headers: { Authorization: `Bearer ${authSession?.access_token}` },
       });
+      console.log("FUNCTION RESPONSE:", res);
       if (res.error) throw new Error(res.error.message);
       const { reply, session_id: newSessionId } = res.data;
 
