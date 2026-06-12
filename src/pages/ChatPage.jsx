@@ -343,16 +343,25 @@ export default function ChatPage() {
     setStarting(true);
     setError("");
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError("Not logged in. Please refresh and try again.");
+        setStarting(false);
+        return;
+      }
+
       const res = await supabase.functions.invoke("chat", {
         body: { lesson_mode: lessonMode, start_session: true },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
+
       if (res.error) throw new Error(res.error.message);
       const { reply, session_id: newSessionId } = res.data;
 
       if (newSessionId) setSessionId(newSessionId);
 
       let parsed = parseResponse(reply);
-      if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
+      // if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
 
       setMessages([{ role: "assistant", parsed, id: "opening" }]);
       setSessionActive(true);
@@ -390,22 +399,17 @@ export default function ChatPage() {
 
     try {
       console.log("[2] authSession token:", authSession?.access_token?.slice(0, 20) + "...");
-      dbg("2 token", { ok: !!authSession?.access_token });
+      // dbg("2 token", { ok: !!session?.access_token });
  
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+
       const res = await Promise.race([
         supabase.functions.invoke("chat", {
-          body: {
-            message: text,
-            lesson_mode: lessonMode,
-            session_id: sessionId,
-          },
+          body: { message: text, lesson_mode: lessonMode, session_id: sessionId },
+          headers: { Authorization: `Bearer ${token}` },
         }),
-        new Promise((_, reject) =>
-          setTimeout(
-            () => reject(new Error("Request timed out")),
-            15000 // 15 seconds
-          )
-        ),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out")), 15000)),
       ]);
       console.log("[3] function response received:", { error: res.error, hasData: !!res.data });
       dbg("3 raw res", { error: res.error?.message, data: JSON.stringify(res.data)?.slice(0,120) });
