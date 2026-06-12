@@ -7,7 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   // loading = true until we know the auth state AND profile is fetched
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   async function fetchProfile(userId) {
     const { data, error } = await supabase
