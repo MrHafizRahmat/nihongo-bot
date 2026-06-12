@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext";
-import { parseResponse, toRomaji } from "../lib/japaneseUtils";
+import { parseResponse } from "../lib/japaneseUtils";
 
 const LESSONS = [
   { id: "greeting",   emoji: "👋", label: "Greetings",          kana: "あいさつ" },
