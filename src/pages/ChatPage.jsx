@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext";
-import { parseResponse, toHiragana, prewarmTokenizer } from "../lib/japaneseUtils";
+import { parseResponse, toRomaji } from "../lib/japaneseUtils";
 
 const LESSONS = [
   { id: "greeting",   emoji: "👋", label: "Greetings",          kana: "あいさつ" },
@@ -33,7 +33,7 @@ function FeedbackCard({ feedback, lessonMode }) {
         <div className="feedback-icon">📝</div>
         <div>
           <div className="feedback-title">Session Feedback</div>
-          <div className="feedback-subtitle">{LESSON_LABELS[lessonMode] || lessonMode} · JFS A0</div>
+          <div className="feedback-subtitle">{LESSON_LABELS[lessonMode] || lessonMode}</div>
         </div>
       </div>
 
@@ -291,8 +291,7 @@ export default function ChatPage() {
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
 
-  const initialMode = searchParams.get("mode") || "greeting";
-  const [lessonMode, setLessonMode]       = useState(initialMode);
+  const [lessonMode, setLessonMode]       = useState("greeting");
   const [sessionId, setSessionId]         = useState(null);
   const [authSession, setAuthSession]     = useState(null);
   const [messages, setMessages]           = useState([]);
@@ -304,8 +303,6 @@ export default function ChatPage() {
   const [feedback, setFeedback]           = useState(null);
   const [error, setError]                 = useState("");
   const [showMaterials, setShowMaterials] = useState(false);
-
-  useEffect(() => { prewarmTokenizer(); }, []);
 
   // Store auth session once — avoids calling getSession() on every message
   useEffect(() => {
@@ -320,6 +317,8 @@ export default function ChatPage() {
 
   // Reset when lesson mode changes
   useEffect(() => {
+    const mode = searchParams.get("mode") || "greeting";
+    setLessonMode(mode);
     setSessionId(null);
     setMessages([]);
     setSessionActive(false);
@@ -327,7 +326,7 @@ export default function ChatPage() {
     setFeedback(null);
     setError("");
     setShowMaterials(false);
-  }, [lessonMode]);
+  }, [searchParams]);
 
   useEffect(() => {
     if (sessionActive) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -348,7 +347,7 @@ export default function ChatPage() {
       if (newSessionId) setSessionId(newSessionId);
 
       let parsed = parseResponse(reply);
-      if (parsed.japanese) parsed.japanese = await toHiragana(parsed.japanese);
+      if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
 
       setMessages([{ role: "assistant", parsed, id: "opening" }]);
       setSessionActive(true);
@@ -397,7 +396,7 @@ export default function ChatPage() {
         new Promise((_, reject) =>
           setTimeout(
             () => reject(new Error("Request timed out")),
-            15000
+            15000 // 15 seconds
           )
         ),
       ]);
@@ -413,8 +412,8 @@ export default function ChatPage() {
       let parsed = parseResponse(reply);
       console.log("[5] parsed:", { japanese: parsed.japanese?.slice(0, 30), romaji: parsed.romaji?.slice(0, 30), hasNote: !!parsed.note });
 
-      if (parsed.japanese) parsed.japanese = await toHiragana(parsed.japanese);
-      console.log("[6] toHiragana done");
+      if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
+      console.log("[6] toRomaji done");
 
       setMessages(prev => [...prev, {
         role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now()
@@ -453,7 +452,6 @@ export default function ChatPage() {
 
   function handleLessonChange(id) {
     navigate(`/chat?mode=${id}`, { replace: true });
-    setLessonMode(id);
   }
 
   const currentLesson = LESSONS.find(l => l.id === lessonMode);
