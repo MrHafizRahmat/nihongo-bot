@@ -303,6 +303,12 @@ export default function ChatPage() {
   const [feedback, setFeedback]           = useState(null);
   const [error, setError]                 = useState("");
   const [showMaterials, setShowMaterials] = useState(false);
+  const [debugLog, setDebugLog] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
+  function dbg(label, data) {
+  const entry = `[${new Date().toISOString().slice(11,23)}] ${label}: ${JSON.stringify(data, null, 0)}`;
+  setDebugLog(prev => [...prev.slice(-60), entry]);
+  }
 
   // Store auth session once — avoids calling getSession() on every message
   useEffect(() => {
@@ -382,6 +388,7 @@ export default function ChatPage() {
     const text = input.trim();
     if (!text || loading || sessionDone) return;
     console.log("[1] sendMessage called:", { text, lessonMode, sessionId });
+    dbg("1 sendMessage", { text: text.slice(0,30), lessonMode, sessionId });
 
     setInput("");
     setError("");
@@ -392,6 +399,7 @@ export default function ChatPage() {
 
     try {
       console.log("[2] authSession token:", authSession?.access_token?.slice(0, 20) + "...");
+      dbg("2 token", { ok: !!session?.access_token });
  
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -404,19 +412,23 @@ export default function ChatPage() {
         new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out")), 15000)),
       ]);
       console.log("[3] function response received:", { error: res.error, hasData: !!res.data });
+      dbg("3 raw res", { error: res.error?.message, data: JSON.stringify(res.data)?.slice(0,120) });
 
       if (res.error) throw new Error(res.error.message);
 
       const { reply, session_id: newSessionId, feedback: fb, session_complete } = res.data;
       console.log("[4] reply length:", reply?.length, "newSessionId:", newSessionId, "session_complete:", session_complete);
+      dbg("4 reply", { len: reply?.length, replySnippet: reply?.slice(0,80), newSessionId, session_complete });
 
       if (newSessionId && !sessionId) setSessionId(newSessionId);
 
       let parsed = parseResponse(reply);
       console.log("[5] parsed:", { japanese: parsed.japanese?.slice(0, 30), romaji: parsed.romaji?.slice(0, 30), hasNote: !!parsed.note });
+      dbg("5 parsed", { jp: parsed.japanese?.slice(0,30), romaji: parsed.romaji?.slice(0,30), hasNote: !!parsed.note });
 
       if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
       console.log("[6] toRomaji done");
+      dbg("6 toRomaji done", { result: parsed.japanese?.slice(0,40) });
 
       setMessages(prev => [...prev, {
         role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now()
@@ -432,6 +444,7 @@ export default function ChatPage() {
 
     } catch (err) {
       console.error("[ERR] sendMessage failed:", err.message);
+      dbg("ERR", { msg: err.message });
 
       if (err.message === "Request timed out") {
         setError("The chatbot is taking too long to respond.");
@@ -734,6 +747,24 @@ export default function ChatPage() {
               <div className="input-hint">
                 {sessionDone ? "Session ended · Use ↺ Start New Session to practice again" : "Press Enter to send · Shift+Enter for new line"}
               </div>
+            </div>
+            {/* ── Debug panel ── remove before production ── */}
+            <div style={{position:"fixed",bottom:60,right:12,zIndex:999}}>
+              <button
+                onClick={() => setShowDebug(p => !p)}
+                style={{fontSize:"0.7rem",padding:"4px 10px",background:"#1a1210",color:"#fdf6ee",
+                border:"none",borderRadius:6,cursor:"pointer",opacity:0.85}}>
+                {showDebug ? "hide debug" : "🐛 debug"}
+              </button>
+              {showDebug && (
+              <div style={{width:340,maxHeight:320,overflowY:"auto",background:"#1a1210",color:"#a0f0a0",
+              fontSize:"0.68rem",fontFamily:"monospace",padding:"8px 10px",borderRadius:8,
+              marginTop:4,lineHeight:1.6}}>
+                {debugLog.length === 0
+                ? <span style={{color:"#888"}}>no logs yet — send a message</span>
+                : debugLog.map((l,i) => <div key={i}>{l}</div>)}
+              </div>
+              )}
             </div>
           </>
         )}
