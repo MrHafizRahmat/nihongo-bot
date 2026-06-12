@@ -1,6 +1,9 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { useEffect } from "react";
+import { prewarmTokenizer } from "./lib/japaneseUtils";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ScrollToTop from "./components/ScrollToTop";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -14,9 +17,14 @@ import StudentMessages from "./pages/StudentMessages";
 import TeacherMessages from "./pages/TeacherMessages";
 
 export default function App() {
+  useEffect(() => {
+    prewarmTokenizer();
+  }, []);
+  
   return (
     <AuthProvider>
       <Router>
+        <ScrollToTop /> {}
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
