@@ -38,40 +38,40 @@ let _tokenizer = null;
 let _loading   = false;
 let _callbacks = [];
 
-function loadTokenizer() {
-  return new Promise((resolve, reject) => {
-    if (_tokenizer) { resolve(_tokenizer); return; }
-    if (_loading) { _callbacks.push({ resolve, reject }); return; }
+// function loadTokenizer() {
+//   return new Promise((resolve, reject) => {
+//     if (_tokenizer) { resolve(_tokenizer); return; }
+//     if (_loading) { _callbacks.push({ resolve, reject }); return; }
 
-    _loading = true;
-    _callbacks.push({ resolve, reject });
+//     _loading = true;
+//     _callbacks.push({ resolve, reject });
 
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js";
-    script.onload = () => {
-      window.kuromoji
-        .builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict" })
-        .build((err, tokenizer) => {
-          if (err) {
-            _callbacks.forEach(cb => cb.reject(err));
-            _callbacks = [];
-            _loading = false;
-            return;
-          }
-          _tokenizer = tokenizer;
-          _loading = false;
-          _callbacks.forEach(cb => cb.resolve(tokenizer));
-          _callbacks = [];
-        });
-    };
-    script.onerror = (e) => {
-      _callbacks.forEach(cb => cb.reject(e));
-      _callbacks = [];
-      _loading = false;
-    };
-    document.head.appendChild(script);
-  });
-}
+//     const script = document.createElement("script");
+//     script.src = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js";
+//     script.onload = () => {
+//       window.kuromoji
+//         .builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict" })
+//         .build((err, tokenizer) => {
+//           if (err) {
+//             _callbacks.forEach(cb => cb.reject(err));
+//             _callbacks = [];
+//             _loading = false;
+//             return;
+//           }
+//           _tokenizer = tokenizer;
+//           _loading = false;
+//           _callbacks.forEach(cb => cb.resolve(tokenizer));
+//           _callbacks = [];
+//         });
+//     };
+//     script.onerror = (e) => {
+//       _callbacks.forEach(cb => cb.reject(e));
+//       _callbacks = [];
+//       _loading = false;
+//     };
+//     document.head.appendChild(script);
+//   });
+// }
 
 // Katakana → romaji lookup table
 const KATAKANA_ROMAJI = {
@@ -133,30 +133,30 @@ function katakanaToRomaji(str) {
 
 // Converts a Japanese string to romaji using kuromoji token readings.
 // Falls back to returning the original string if conversion fails.
-export async function toRomaji(text) {
-  if (!text) return text;
+// export async function toRomaji(text) {
+//   if (!text) return text;
 
-  try {
-    const tokenizer = await loadTokenizer();
-    const tokens = tokenizer.tokenize(text);
+//   try {
+//     const tokenizer = await loadTokenizer();
+//     const tokens = tokenizer.tokenize(text);
 
-    return tokens.map(token => {
-      const surface = token.surface_form;
-      // Only convert if the token contains katakana
-      const hasKatakana = /[\u30A1-\u30F6]/.test(surface);
-      if (hasKatakana && token.reading) {
-        return katakanaToRomaji(token.reading);
-      }
-      return surface;
-    }).join("");
+//     return tokens.map(token => {
+//       const surface = token.surface_form;
+//       // Only convert if the token contains katakana
+//       const hasKatakana = /[\u30A1-\u30F6]/.test(surface);
+//       if (hasKatakana && token.reading) {
+//         return katakanaToRomaji(token.reading);
+//       }
+//       return surface;
+//     }).join("");
 
-  } catch (err) {
-    console.warn("Kuromoji romaji conversion failed, using original text:", err);
-    return text;
-  }
-}
+//   } catch (err) {
+//     console.warn("Kuromoji romaji conversion failed, using original text:", err);
+//     return text;
+//   }
+// }
 
 // Pre-warm the tokenizer on app load so first conversion isn't slow
 export function prewarmTokenizer() {
-  loadTokenizer().catch(() => {});
+  // loadTokenizer().catch(() => {});
 }
