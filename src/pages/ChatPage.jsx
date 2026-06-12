@@ -676,7 +676,7 @@ export default function ChatPage() {
           ))}
         </div>
 
-        {!sessionId ? (
+        {!sessionActive ? (
           <StartScreen lessonMode={lessonMode} onStart={handleStart} starting={starting} />
         ) : (
           <>
