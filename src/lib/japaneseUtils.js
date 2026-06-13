@@ -30,7 +30,7 @@ export function parseResponse(raw) {
 }
 
 // Katakana → romaji lookup table
-const KATAKANA_ROMAJI = {
+const KATAKANA_TO_ROMAJI = {
   "ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o",
   "カ":"ka","キ":"ki","ク":"ku","ケ":"ke","コ":"ko",
   "サ":"sa","シ":"shi","ス":"su","セ":"se","ソ":"so",
