@@ -17,10 +17,6 @@ import StudentMessages from "./pages/StudentMessages";
 import TeacherMessages from "./pages/TeacherMessages";
 
 export default function App() {
-  useEffect(() => {
-    prewarmTokenizer();
-  }, []);
-  
   return (
     <AuthProvider>
       <Router>
