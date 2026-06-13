@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../context/AuthContext";
-import { parseResponse } from "../lib/japaneseUtils";
+import { parseResponse, toRomaji } from "../lib/japaneseUtils";
 
 const LESSONS = [
   { id: "greeting",   emoji: "👋", label: "Greetings",          kana: "あいさつ" },
@@ -361,7 +361,7 @@ export default function ChatPage() {
       if (newSessionId) setSessionId(newSessionId);
 
       let parsed = parseResponse(reply);
-      // if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
+      if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
 
       setMessages([{ role: "assistant", parsed, id: "opening" }]);
       setSessionActive(true);
@@ -399,7 +399,7 @@ export default function ChatPage() {
 
     try {
       console.log("[2] authSession token:", authSession?.access_token?.slice(0, 20) + "...");
-      // dbg("2 token", { ok: !!session?.access_token });
+      dbg("2 token", { ok: !!authSession?.access_token?.slice(0, 20) + "..." });
  
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -426,9 +426,9 @@ export default function ChatPage() {
       console.log("[5] parsed:", { japanese: parsed.japanese?.slice(0, 30), romaji: parsed.romaji?.slice(0, 30), hasNote: !!parsed.note });
       dbg("5 parsed", { jp: parsed.japanese?.slice(0,30), romaji: parsed.romaji?.slice(0,30), hasNote: !!parsed.note });
 
-      // if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
-      // console.log("[6] toRomaji done");
-      // dbg("6 toRomaji done", { result: parsed.japanese?.slice(0,40) });
+      if (parsed.japanese) parsed.japanese = await toRomaji(parsed.japanese);
+      console.log("[6] toRomaji done");
+      dbg("6 toRomaji done", { result: parsed.japanese?.slice(0,40) });
 
       setMessages(prev => [...prev, {
         role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now()

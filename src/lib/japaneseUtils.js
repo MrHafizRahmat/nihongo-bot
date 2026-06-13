@@ -29,50 +29,6 @@ export function parseResponse(raw) {
   };
 }
 
-
-// ─── KANA → ROMAJI CONVERTER ─────────────────────────────────────────────────
-// Uses kuromoji to tokenize, then maps each token's reading (katakana) to romaji.
-// Falls back gracefully if kuromoji is unavailable.
-
-let _tokenizer = null;
-let _loading   = false;
-let _callbacks = [];
-
-// function loadTokenizer() {
-//   return new Promise((resolve, reject) => {
-//     if (_tokenizer) { resolve(_tokenizer); return; }
-//     if (_loading) { _callbacks.push({ resolve, reject }); return; }
-
-//     _loading = true;
-//     _callbacks.push({ resolve, reject });
-
-//     const script = document.createElement("script");
-//     script.src = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js";
-//     script.onload = () => {
-//       window.kuromoji
-//         .builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict" })
-//         .build((err, tokenizer) => {
-//           if (err) {
-//             _callbacks.forEach(cb => cb.reject(err));
-//             _callbacks = [];
-//             _loading = false;
-//             return;
-//           }
-//           _tokenizer = tokenizer;
-//           _loading = false;
-//           _callbacks.forEach(cb => cb.resolve(tokenizer));
-//           _callbacks = [];
-//         });
-//     };
-//     script.onerror = (e) => {
-//       _callbacks.forEach(cb => cb.reject(e));
-//       _callbacks = [];
-//       _loading = false;
-//     };
-//     document.head.appendChild(script);
-//   });
-// }
-
 // Katakana → romaji lookup table
 const KATAKANA_ROMAJI = {
   "ア":"a","イ":"i","ウ":"u","エ":"e","オ":"o",
@@ -109,23 +65,30 @@ function katakanaToRomaji(str) {
   let result = "";
   let i = 0;
   while (i < str.length) {
-    // Try two-char combo first (e.g. キャ)
-    const two = str.slice(i, i + 2);
-    if (KATAKANA_ROMAJI[two] !== undefined) {
-      result += KATAKANA_ROMAJI[two];
+    const two = str[i] + (str[i + 1] || "");
+    if (KATAKANA_TO_ROMAJI[two] !== undefined) {
+      result += KATAKANA_TO_ROMAJI[two];
       i += 2;
       continue;
     }
-    const one = str[i];
-    if (one === "ッ") {
-      // Double the next consonant
-      const next = str[i + 1];
-      const nextRomaji = KATAKANA_ROMAJI[str.slice(i + 1, i + 3)] || KATAKANA_ROMAJI[next] || "";
-      result += nextRomaji ? nextRomaji[0] : "";
+    const ch = str[i];
+    if (ch === "ッ") {
+      const next = str[i + 1] || "";
+      const nextRomaji = KATAKANA_TO_ROMAJI[str[i + 1] + (str[i + 2] || "")] || KATAKANA_TO_ROMAJI[next] || "";
+      result += nextRomaji[0] || "";
       i++;
       continue;
     }
-    result += KATAKANA_ROMAJI[one] ?? one;
+    // ー extends the last vowel
+    if (ch === "ー") {
+      const lastChar = result[result.length - 1];
+      if (lastChar && "aeiou".includes(lastChar)) {
+        result += lastChar;
+      }
+      i++;
+      continue;
+    }
+    result += KATAKANA_TO_ROMAJI[ch] ?? ch;
     i++;
   }
   return result;
@@ -133,30 +96,8 @@ function katakanaToRomaji(str) {
 
 // Converts a Japanese string to romaji using kuromoji token readings.
 // Falls back to returning the original string if conversion fails.
-// export async function toRomaji(text) {
-//   if (!text) return text;
+export async function toRomaji(text) {
+  if (!text) return text;
 
-//   try {
-//     const tokenizer = await loadTokenizer();
-//     const tokens = tokenizer.tokenize(text);
-
-//     return tokens.map(token => {
-//       const surface = token.surface_form;
-//       // Only convert if the token contains katakana
-//       const hasKatakana = /[\u30A1-\u30F6]/.test(surface);
-//       if (hasKatakana && token.reading) {
-//         return katakanaToRomaji(token.reading);
-//       }
-//       return surface;
-//     }).join("");
-
-//   } catch (err) {
-//     console.warn("Kuromoji romaji conversion failed, using original text:", err);
-//     return text;
-//   }
-// }
-
-// Pre-warm the tokenizer on app load so first conversion isn't slow
-export function prewarmTokenizer() {
-  // loadTokenizer().catch(() => {});
+  return katakanaToRomaji(text);
 }
