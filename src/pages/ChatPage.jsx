@@ -367,6 +367,7 @@ export default function ChatPage() {
       setSessionActive(true);
       setTimeout(() => inputRef.current?.focus(), 100);
     } catch (err) {
+      dbg("handleStart failed", { error: err, message: err?.message, stack: err?.stack, });
       setError("Could not start conversation. Please try again.");
     } finally {
       setStarting(false);
