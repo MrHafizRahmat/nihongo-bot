@@ -61,7 +61,7 @@ const KATAKANA_ROMAJI = {
   "ー":"-", // long vowel dash
 };
 
-function katakanaToRomaji(str) {
+function kanaToRomaji(str) {
   let result = "";
   let i = 0;
   while (i < str.length) {
@@ -92,12 +92,4 @@ function katakanaToRomaji(str) {
     i++;
   }
   return result;
-}
-
-// Converts a Japanese string to romaji using kuromoji token readings.
-// Falls back to returning the original string if conversion fails.
-export async function toRomaji(text) {
-  if (!text) return text;
-
-  return katakanaToRomaji(text);
 }
