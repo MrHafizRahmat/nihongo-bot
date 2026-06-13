@@ -61,7 +61,7 @@ const KATAKANA_ROMAJI = {
   "ー":"-", // long vowel dash
 };
 
-function kanaToRomaji(str) {
+export function kanaToRomaji(str) {
   let result = "";
   let i = 0;
   while (i < str.length) {
