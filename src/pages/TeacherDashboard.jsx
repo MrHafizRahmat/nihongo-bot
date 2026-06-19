@@ -346,6 +346,9 @@ export default function TeacherDashboard() {
             <button className="nav-action-btn" onClick={() => navigate("/messages/teacher")}>
               💬 Messages
             </button>
+            <button className="nav-action-btn" onClick={() => navigate("/dashboard/teacher/materials")}>
+              📄 Materials
+            </button>
             <button className="nav-action-btn" onClick={() => navigate("/dashboard/teacher/register")}>
               + Register Students
             </button>

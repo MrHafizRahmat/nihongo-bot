@@ -290,6 +290,7 @@ export default function ChatPage() {
   const { profile } = useAuth();
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
+  const timeoutRef = useRef(null);
 
   const [lessonMode, setLessonMode]       = useState("greeting");
   const [sessionId, setSessionId]         = useState(null);
@@ -305,20 +306,50 @@ export default function ChatPage() {
   const [showMaterials, setShowMaterials] = useState(false);
   const [debugLog, setDebugLog] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
+
   function dbg(label, data) {
   const entry = `[${new Date().toISOString().slice(11,23)}] ${label}: ${JSON.stringify(data, null, 0)}`;
+  console.log(`[DBG] ${label}`, data);
   setDebugLog(prev => [...prev.slice(-60), entry]);
   }
 
   // Store auth session once — avoids calling getSession() on every message
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setAuthSession(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setTimeout(async () =>{
-        setAuthSession(session);
-      }, 0)
+    supabase.auth.getSession().then(({ data, error }) => {
+      console.log("[AUTH] calling getSession");
+      console.log("[AUTH] getSession resolved", {
+        hasSession: !!data.session,
+        email: data.session?.user?.email,
+        error,
+      });
+      
+      console.log("expires_at", data.session?.expires_at);
+      console.log("now", Math.floor(Date.now() / 1000));
+
+      setAuthSession(data.session);
     });
-    return () => listener.subscription.unsubscribe();
+
+    // One-shot listener — fires once then kills itself
+    const { data: { subscription: onceSubscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("[AUTH] onAuthStateChange fired (once):", _event, session?.user?.email);
+      setTimeout(() => {
+        setAuthSession(session);
+      }, 0);
+      onceSubscription.unsubscribe();
+    });
+
+    // Separate listener only for SIGNED_OUT
+    const { data: { subscription: signOutSubscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === "SIGNED_OUT") {
+        console.log("[AUTH] SIGNED_OUT detected");
+        setAuthSession(null);
+      }
+    });
+
+    return () => {
+      onceSubscription.unsubscribe();
+      signOutSubscription.unsubscribe();
+    };
   }, []);
 
   // Reset when lesson mode changes
@@ -340,36 +371,36 @@ export default function ChatPage() {
 
   // ── Start conversation (character speaks first) ──────────────
   async function handleStart() {
+    dbg("handleStart:begin", { lessonMode });
     setStarting(true);
     setError("");
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setError("Not logged in. Please refresh and try again.");
-        setStarting(false);
-        return;
-      }
-
+      dbg("handleStart:invoke", { lesson_mode: lessonMode });
       const res = await supabase.functions.invoke("chat", {
         body: { lesson_mode: lessonMode, start_session: true },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: `Bearer ${authSession?.access_token}` },
       });
 
+      dbg("handleStart:response", { error: res.error, hasData: !!res.data });
       if (res.error) throw new Error(res.error.message);
+
       const { reply, session_id: newSessionId } = res.data;
+      dbg("handleStart:parsed", { newSessionId, replyLength: reply?.length });
 
       if (newSessionId) setSessionId(newSessionId);
 
       let parsed = parseResponse(reply);
       if (parsed.japanese) parsed.japanese = kanaToRomaji(parsed.japanese);
+      dbg("handleStart:opening_ready", { japanese: parsed.japanese?.slice(0, 30) });
 
       setMessages([{ role: "assistant", parsed, id: "opening" }]);
       setSessionActive(true);
       setTimeout(() => inputRef.current?.focus(), 100);
     } catch (err) {
-      dbg("handleStart failed", { error: err, message: err?.message, stack: err?.stack, });
+      dbg("handleStart:error", { error: err, message: err?.message, stack: err?.stack, });
       setError("Could not start conversation. Please try again.");
     } finally {
+      dbg("handleStart:done", { starting: false });
       setStarting(false);
     }
   }
@@ -387,9 +418,11 @@ export default function ChatPage() {
   // ── Send message ─────────────────────────────────────────────
   async function sendMessage() {
     const text = input.trim();
-    if (!text || loading || sessionDone) return;
-    console.log("[1] sendMessage called:", { text, lessonMode, sessionId });
-    dbg("1 sendMessage", { text: text.slice(0,30), lessonMode, sessionId });
+    dbg("sendMsg:begin", { text: text.slice(0,30), lessonMode, sessionId });
+    if (!text || loading) {
+      dbg("sendMsg:blocked", { text: !!text, loading });
+      return;
+    }
 
     setInput("");
     setError("");
@@ -399,53 +432,47 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
-      console.log("[2] authSession token:", authSession?.access_token?.slice(0, 20) + "...");
-      dbg("2 token", { ok: !!authSession?.access_token?.slice(0, 20) + "..." });
- 
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      dbg("sendMsg:invoke", { sessionId, lesson_mode: lessonMode });
 
       const res = await Promise.race([
         supabase.functions.invoke("chat", {
           body: { message: text, lesson_mode: lessonMode, session_id: sessionId },
-          headers: { Authorization: `Bearer ${token}` },
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out")), 15000)),
+        new Promise((_, reject) => {
+          timeoutRef.current = setTimeout(() => {
+            dbg("sendMsg:timeout", { after: "10s" });
+            reject(new Error("Request timed out"));
+          }, 10000);
+        }),
       ]);
-      console.log("[3] function response received:", { error: res.error, hasData: !!res.data });
-      dbg("3 raw res", { error: res.error?.message, data: JSON.stringify(res.data)?.slice(0,120) });
 
+      clearTimeout(timeoutRef.current);
+
+      dbg("sendMsg:response", { error: res.error, hasData: !!res.data });
       if (res.error) throw new Error(res.error.message);
 
       const { reply, session_id: newSessionId, feedback: fb, session_complete } = res.data;
-      console.log("[4] reply length:", reply?.length, "newSessionId:", newSessionId, "session_complete:", session_complete);
-      dbg("4 reply", { len: reply?.length, replySnippet: reply?.slice(0,80), newSessionId, session_complete });
+      dbg("sendMsg:data", { newSessionId, replyLength: reply?.length, session_complete, hasFeedback: !!fb });
 
       if (newSessionId && !sessionId) setSessionId(newSessionId);
 
       let parsed = parseResponse(reply);
-      console.log("[5] parsed:", { japanese: parsed.japanese?.slice(0, 30), romaji: parsed.romaji?.slice(0, 30), hasNote: !!parsed.note });
-      dbg("5 parsed", { jp: parsed.japanese?.slice(0,30), romaji: parsed.romaji?.slice(0,30), hasNote: !!parsed.note });
-
       if (parsed.japanese) parsed.japanese = kanaToRomaji(parsed.japanese);
-      console.log("[6] kanaToRomaji done");
-      dbg("6 kanaToRomaji done", { result: parsed.japanese?.slice(0,40) });
+      dbg("sendMsg:parsed", { japanese: parsed.japanese?.slice(0, 30), hasNote: !!parsed.note });
 
       setMessages(prev => [...prev, {
         role: "assistant", parsed, id: (newSessionId || sessionId) + Date.now()
       }]);
-      console.log("[7] message added to state");
 
       // Handle session completion + feedback
       if (session_complete) {
         setSessionDone(true);
         if (fb) setFeedback(fb);
-        console.log("[7b] session complete, feedback:", !!fb);
+        dbg("sendMsg:session_complete", { hasFeedback: !!fb });
       }
 
     } catch (err) {
-      console.error("[ERR] sendMessage failed:", err.message);
-      dbg("ERR", { msg: err.message });
+      dbg("sendMsg:error", { msg: err.message });
 
       if (err.message === "Request timed out") {
         setError("The chatbot is taking too long to respond.");
@@ -457,9 +484,10 @@ export default function ChatPage() {
         prev.filter(m => m.id !== userMsg.id)
       );
     } finally {
+      clearTimeout(timeoutRef.current);
       setLoading(false);
       if (!sessionDone) inputRef.current?.focus();
-      console.log("[8] sendMessage complete");
+      dbg("sendMsg:finally", { loading: false });
     }
   }
 

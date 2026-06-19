@@ -5,7 +5,17 @@ export default function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const key = `refreshed:${pathname}`;
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, "1");
+      window.location.reload();
+    } else {
+      window.scrollTo(0, 0);
+    }
+
+    return () => {
+      sessionStorage.removeItem(key);
+    };
   }, [pathname]);
 
   return null;
