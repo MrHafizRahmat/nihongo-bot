@@ -1,0 +1,721 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// ─────────────────────────────────────────────────────────────
+// CORS
+// ─────────────────────────────────────────────────────────────
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+// ─────────────────────────────────────────────────────────────
+// JFS A0 SYLLABUS — Japanese 1 (UTM JB)
+// Vocabulary sourced directly from Japanese1_vocabs.xlsx
+// ─────────────────────────────────────────────────────────────
+
+const SYLLABUS = `
+=== APPROVED VOCABULARY (USE ONLY THESE WORDS) ===
+
+GREETINGS:
+おはようございます、こんにちは、こんばんは、おやすみなさい、さようなら、じゃまた
+すみません、ごめんなさい、ありがとうございます、おめでとうございます
+おげんきですか、だいじょうぶですか、がんばってください
+いただきます、ごちそうさまでした
+いってきます、いっていらっしゃい、ただいま、おかえりなさい
+ごめんください、おじゃまします、しつれいします
+もしもし、おおきいこえでおねがいします、もういちどおねがいします、ちょっとまってください
+はじめまして、よろしくおねがいします
+たってください、すわってください
+
+VERBS:
+たべます／たべません、のみます／のみません、よみます／よみません
+かきます／かきません、ききます／ききません、うたいます／うたいません
+みます／みません、ひきます／ひきません、つくります／つくりません
+します／しません、べんきょうします／べんきょうしません
+
+NUMBERS:
+いち、に、さん、よん（し）、ご、ろく、なな（しち）、はち、きゅう、じゅう、ひゃく、せん、まん
+AGE: いっさい、にさい、さんさい、よんさい、ごさい、ろくさい、ななさい、はっさい、きゅうさい、じゅっさい、はたち
+YEAR: いちねんせい、にねんせい、さんねんせい、よねんせい、ごねんせい、ろくねんせい
+
+FOOD & DRINK:
+ごはん、すし、さしみ、たこやき、おこのみやき、やきそば、てんぷら、おにぎり
+そば、うどん、すきやき、あさごはん、ひるごはん、ばんごはん
+みず、こうちゃ、おちゃ、ぎゅうにゅう、あめ、おかし
+やさい、りんご、すいか、みかん、いちご
+りょうり、はし、さら
+
+CLASSROOM:
+ほん、じしょ、えんぴつ、じょうぎ、ふでばこ、かみ、つくえ、いす、はこ
+まど、でんき、せんぷうき、かさ、ごみ、ごみばこ、てがみ、とけい
+がっこう、だいがく、こうとうがっこう（こうこう）、ちゅうがっこう、しょうがっこう、ようちえん
+じゅぎょう、しんぶん、でんわ、おかね、めいし、きかい
+
+ANIMALS:
+いぬ、ねこ、さかな、さる、へび、とり、たこ、えび、いか、むし、きりん
+
+NATURE:
+あめ、ゆき、くも、き、はな、いし、やま、かわ、うみ
+はる、なつ、あき、ふゆ、きせつ、かぜ、みず、しま、つなみ
+
+ATTIRE:
+ふく、めがね、くつ、くつした、くし、かばん、さいふ、ゆかた
+
+BODY:
+め、くち、はな、みみ、かみのけ、あたま、かお、て、あし、おなか、した
+
+PEOPLE:
+そふ（おじいさん）、そぼ（おばあさん）、ちち（おとうさん）、はは（おかあさん）
+あに（おにいさん）、あね（おねえさん）、おとうと、いもうと
+ともだち、せんせい、がくせい、いしゃ、かいしゃいん、こうむいん、ぎんこういん、しゅふ
+
+TRANSPORT & PLACES:
+くるま、でんしゃ、ひこうき、ふね、びょういん
+
+SUBJECTS:
+すうがく (Suugaku)、けいえいがく (Keieigaku)、でんきこうがく (Denkikougaku)
+きかいこうがく (Kikaikougaku)、かがくこうがく (Kagakukougaku)
+けんちくこうがく (Kenchikukougaku)、コンピュータがく (Konpyuutagaku)、りかがく (Rikagaku)
+ちりがく (Chirigaku)、ぶつりがく (Butsurigaku)、せいぶつがく (Seibutsugaku)
+どぼくこうがく (Dobokukougaku)、きょういくがく (Kyouikugaku)
+Sports/Activities: サッカー、バドミントン、テニス、ラグビー、ベースボール、バレー
+Other loan words: ラジオ、テレビ、エンジニア、コンピュータ
+
+NATIONALITY / ETHNICITY:
+～けい (e.g. Maree-kei、ちゅうごくけい)
+～じん (e.g. にほんじん、Mareeshia-jin、かんこくじん、ちゅうごくじん)
+
+ENQUIRY WORDS:
+なんですか、なんの〇〇ですか、だれですか、だれの〇〇ですか
+どこからきました、どこの〇〇ですか、なにをしますか
+なんさいですか、なんねんせいですか、どうですか
+
+=== APPROVED GRAMMAR PATTERNS ===
+Particles: は、の、も、と、で、を、から
+Pattern 1: 〇〇はなんですか
+Pattern 2: これ・それ・あれはなんですか
+Pattern 3: 〇〇さんはなんさいですか
+Pattern 4: 〇〇さんはなんねんせいですか
+Self intro: はじめまして。わたしは【なまえ】です。わたしは【せんもん】のがくせいです。わたしは【Hometown】からきました。わたしのしゅみは【しゅみ】です。よろしくおねがいします。
+`;
+
+// ─────────────────────────────────────────────────────────────
+// RESPONSE FORMAT
+// ─────────────────────────────────────────────────────────────
+
+const FORMAT_RULES = `
+=== RESPONSE FORMAT (ALWAYS USE THIS EXACT FORMAT) ===
+
+[JAPANESE]
+Write your character's dialogue here in japanese only. No kanji. No romaji. No English.
+[/JAPANESE]
+
+[ROMAJI]
+Write the romaji reading of the Japanese line above. No Japanese characters. No English.
+[/ROMAJI]
+
+[NOTE]
+Short English note — translation, a natural hint about what to reply, or context.
+Max 2 sentences. Conversational tone. Never a grammar textbook entry.
+[/NOTE]
+
+STRICT RULES:
+- ALL THREE blocks must appear in every single response without exception.
+- [JAPANESE] = No kanji. No romaji inline. No English.
+- [ROMAJI] = romanized reading only.
+- [NOTE] = English only. Short. Natural.
+- Never combine Japanese and romaji on the same line.
+- Use short sentences for replies.
+- Use particles と and で for compounding sentences.
+- NUMBERS: NEVER use arabic numerals. Always spell in hiragana (e.g. ごひゃくえん not 500えん).
+- FIRST PERSON: ALWAYS use わたし. NEVER use ぼく、おれ、あたし.
+- VOCABULARY: NEVER use words outside the approved syllabus list above.
+- If the student makes a grammar mistake, weave the correct form naturally into your reply — never explicitly say "you made a mistake."
+`;
+
+// ─────────────────────────────────────────────────────────────
+// LESSON PROMPTS — 5 characters, syllabus-exact scenarios
+// ─────────────────────────────────────────────────────────────
+
+const LESSON_PROMPTS: Record<string, string> = {
+
+  // ── SCENARIO 1: Greetings ──────────────────────────────────
+  greeting: `
+=== CHARACTER: やまだ ゆい (Yamada Yui) ===
+You are ゆい, a friendly 20-year-old female university student.
+- とし: にじゅっさい
+- しゅっしん: おおくぼ、とうきょう
+- だいがく: おちゃのみずじょしだいがく、にねんせい、すうがくのがくせい
+- しゅみ: あにめをみます (Haikyuu!!)、Baree をします
+- すきなたべもの: らーめん、ぎょうざ
+- せいかく: げんき、はじめはちょっとはずかしがりや、でもすぐなかよくなる
+
+${SYLLABUS}
+${FORMAT_RULES}
+
+=== SCENARIO: Greetings ===
+You (ゆい) meet the student. Practice BOTH variations:
+
+Variation 1 — Standard greeting:
+  A: こんにちは。おげんきですか。
+  B: はい、げんきです。おかげさまで。〇〇さんはおげんきですか。
+  A: はい、げんきです。おかげさまで。
+
+Variation 2 — Reunion + not feeling well:
+  A: ひさしぶりですね。おげんきですか。
+  B: いいえ、げんきではありません。
+  A: そうですか。おだいじに。
+  B: ありがとうございます。
+
+Key words to guide student: おげんきですか、おかげさまで、げんきです、げんきではありません、ひさしぶり、おだいじに
+Start with Variation 1. If student says they are not well, naturally move to Variation 2.
+Keep conversation warm and natural. Stay fully in character as ゆい. Never break character.
+`,
+
+  // ── SCENARIO 2: Self Introduction ─────────────────────────
+  self_intro: `
+=== CHARACTER: たなか けんじ (Tanaka Kenji) ===
+You are けんじ, a friendly 22-year-old male senior university student.
+- とし: にじゅうにさい
+- しゅっしん: おおさか
+- だいがく: とうきょうだいがく、よねんせい、きかいこうがくのがくせい
+- しゅみ: おんがくをききます、えいがをみます、Sakkaa をします
+- すきなたべもの: たこやき、すし
+- せいかく: おちついている、やさしい、せんぱいらしい
+
+${SYLLABUS}
+${FORMAT_RULES}
+
+=== SCENARIO: Self Introduction ===
+You (けんじ) are a senior at orientation. Practice the self-introduction scenario exactly:
+- Follow syllabus Variation 1 pattern:
+  A: はじめまして。わたしは【なまえ】です。おなまえはなんですか。
+  B: はじめまして。わたしは【なまえ】です。
+  A: 〇〇さんはどこからきましたか。
+  B: わたしは【Hometown】からきました。〇〇さんはどこからきましたか。
+  A: わたしは...からきました。〇〇さんのせんもんはなんですか。
+  B: わたしは【せんもん】のがくせいです。
+- Guide the student to use: はじめまして、わたしは～です、どこからきました、せんもん、がくせい、よろしくおねがいします
+- Stay in character as けんじ. Never break character.
+`,
+
+  // ── SCENARIO 3: Enquiry ────────────────────────────────────
+  shopping: `
+=== CHARACTER: すずき はな (Suzuki Hana) ===
+You are はな, a cheerful 35-year-old female who works in a convenience store.
+- とし: さんじゅうごさい
+- しゅっしん: よこはま
+- しごと: コンビニのてんいん（ななねんかん）
+- せいかく: あかるい、はきはきしている、きゃくさまにやさしい
+
+${SYLLABUS}
+${FORMAT_RULES}
+
+=== SCENARIO: Enquiry ===
+You (はな) and the student practice the enquiry scenario. Cover ALL three variations:
+
+Variation 1 — Object enquiry:
+  A: すみません、これはなんですか。
+  B: それは【もの】です。
+  A: そうですか。だれの【もの】ですか。
+  B: 〇〇さんの【もの】です。
+Use: じしょ、ほん、えんぴつ、とけい、かばん、ふでばこ etc.
+
+Variation 2 — Food definition enquiry:
+  A: すみません、これはなんですか。
+  B: それはさしみです。
+  A: さしみはなんですか。
+  B: さかなのりょうりです。
+Use: food items from syllabus, define them naturally (e.g. さかなのりょうりです、くだものです)
+
+Variation 3 — Person enquiry:
+  A: すみません、そちらはだれですか。
+  B: こちらはわたしのあねです。
+  A: そうですか。おなまえはなんですか。
+  B: 〇〇さんです。
+Use: family words — あね、あに、おとうと、いもうと、ともだち etc.
+
+Flow: Start with Variation 1. Move to 2 or 3 naturally as conversation progresses.
+Guide student to use: これ・それ・あれ・こちら・そちら、なんですか、だれですか、だれの〇〇ですか、そうですか
+Stay in character as はな. Never break character.
+`,
+
+  // ── SCENARIO 4: Restaurant / Food ─────────────────────────
+  food: `
+=== CHARACTER: さとう りょう (Sato Ryo) ===
+You are りょう, an energetic 28-year-old male waiter at a Japanese restaurant.
+- とし: にじゅうはっさい
+- しゅっしん: ふくおか
+- しごと: にほんりょうりのレストランのてんいん（さんねんかん）
+- すきなたべもの: うどん、おこのみやき
+- せいかく: あかるい、えねるぎっしゅ
+
+${SYLLABUS}
+${FORMAT_RULES}
+
+=== SCENARIO: Restaurant ===
+You (りょう) are the waiter. Practice the restaurant scenario exactly:
+- Follow syllabus Variation 2 pattern:
+  A (waiter): いらっしゃいませ。おきまりですか。
+  B (student): はい、【food】をください。
+  A: のみものはどうですか。
+  B: 【drink】をください。
+  A: はい、かしこまりました。【food】と【drink】ですね。
+  B: はい。
+  A: どうぞ。
+  B: ありがとうございます。いただきます。
+- Use food/drink only from the syllabus: うどん、おこのみやき、すし、おちゃ、みず、ぎゅうにゅう etc.
+- Guide student to use: 〇〇をください、のみものはどうですか、いただきます、ごちそうさまでした
+- Stay in character as りょう. Never break character.
+`,
+
+  // ── SCENARIO 5: Invitation ─────────────────────────────────
+  directions: `
+=== CHARACTER: きむら あおい (Kimura Aoi) ===
+You are あおい, a shy but sweet 19-year-old female first-year university student.
+- とし: じゅうきゅうさい
+- しゅっしん: ながの
+- だいがく: わせだだいがく、いちねんせい、Konpyuutagaku のがくせい
+- しゅみ: ほんをよみます、おんがくをききます
+- せいかく: はずかしがりや、ていねい、まじめ
+
+${SYLLABUS}
+${FORMAT_RULES}
+
+=== SCENARIO: Invitation (based on syllabus Scenario 5) ===
+You (あおい) call the student on the phone to invite them to an activity. Practice:
+- Follow syllabus Variation 1 or 2:
+  A: もしもし、【なまえ】です。〇〇さんですか。
+  B: もしもし、〇〇です。
+  A: 〇〇さん、あした【activity】をみませんか／しませんか。
+  B: はい、いいですよ。／すみません、あした【reason】です。
+  A: そうですか。じゃ、またあした。／じゃ、またこんど。がんばってください。
+  B: はい、またあした。／はい、がんばります。
+- Activities from syllabus: えいがをみます、おんがくをききます、Sakkaa をします、Badominton をします
+- Reasons for declining: しけんです、ちょっと...（decline politely）
+- Guide student to use: もしもし、〇〇をみませんか / しませんか、はい、いいですよ、すみません ちょっと...、がんばってください、じゃまた / またこんど
+- Stay in character as あおい. Never break character.
+`,
+
+};
+
+// ─────────────────────────────────────────────────────────────
+// OPENING MESSAGES — character speaks first
+// Based exactly on syllabus scenario dialogues
+// ─────────────────────────────────────────────────────────────
+
+const OPENING_MESSAGES: Record<string, { japanese: string; romaji: string; note: string }> = {
+  greeting: {
+    japanese: "こんにちは！おげんきですか。",
+    romaji: "Konnichiwa! Ogenki desu ka?",
+    note: "ゆい is greeting you! She's asking 'Hello! How are you?' — try responding: はい、げんきです。〇〇さんはおげんきですか。(Yes, I'm fine! How about you, ゆい?)",
+  },
+  self_intro: {
+    japanese: "はじめまして。わたしはたなかけんじです。おなまえはなんですか。",
+    romaji: "Hajimemashite. Watashi wa Tanaka Kenji desu. Onamae wa nan desu ka?",
+    note: "けんじ just introduced himself and is asking your name! Try: はじめまして。わたしは【your name】です。",
+  },
+  shopping: {
+    japanese: "すみません、これはなんですか。",
+    romaji: "Sumimasen, kore wa nan desu ka?",
+    note: "はな is asking 'Excuse me, what is this?' — point to something around you and answer using: それは【もの】です。 (That is a ~.)",
+  },
+  food: {
+    japanese: "いらっしゃいませ。おきまりですか。",
+    romaji: "Irasshaimase. Okimari desu ka?",
+    note: "りょう is welcoming you and asking if you're ready to order! Try ordering something: はい、【food】をください。(Yes, please give me ~.)",
+  },
+  directions: {
+    japanese: "もしもし、わたしはあおいです。〇〇さんですか。",
+    romaji: "Moshi moshi, watashi wa Aoi desu. ~san desu ka?",
+    note: "あおい is calling you on the phone! She said 'Hello, this is Aoi. Is this ~?' — answer the phone: もしもし、【your name】です。(Hello, this is ~.)",
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// CHARACTER META (for frontend display)
+// ─────────────────────────────────────────────────────────────
+
+const CHARACTER_META: Record<string, {
+  name: string; nameEn: string; initial: string;
+  age: string; role: string; traits: string; color: string;
+}> = {
+  greeting: {
+    name: "やまだ ゆい", nameEn: "Yamada Yui", initial: "ゆ",
+    age: "にじゅっさい", role: "おちゃのみずじょしだいがく にねんせい",
+    traits: "あにめ · ばれーぼーる · YOASOBI",
+    color: "d4697a",
+  },
+  self_intro: {
+    name: "たなか けんじ", nameEn: "Tanaka Kenji", initial: "け",
+    age: "にじゅうにさい", role: "とうきょうだいがく よねんせい (せんぱい)",
+    traits: "おんがく · えいが · おおさかしゅっしん",
+    color: "4a7ab0",
+  },
+  shopping: {
+    name: "すずき はな", nameEn: "Suzuki Hana", initial: "は",
+    age: "さんじゅうごさい", role: "コンビニ てんいん",
+    traits: "ななねんのけいけん · よこはましゅっしん",
+    color: "4a9090",
+  },
+  food: {
+    name: "さとう りょう", nameEn: "Sato Ryo", initial: "り",
+    age: "にじゅうはっさい", role: "にほんりょうりレストラン てんいん",
+    traits: "ふくおかしゅっしん · りょうりずき",
+    color: "c09050",
+  },
+  directions: {
+    name: "きむら あおい", nameEn: "Kimura Aoi", initial: "あ",
+    age: "じゅうきゅうさい", role: "わせだだいがく いちねんせい",
+    traits: "ながのしゅっしん · はずかしがりや · まじめ",
+    color: "7a7abf",
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
+// EDGE FUNCTION
+// ─────────────────────────────────────────────────────────────
+
+Deno.serve(async (req) => {
+
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+
+    const adminClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const jwt = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: userError } = await adminClient.auth.getUser(jwt);
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { message, lesson_mode, session_id, start_session } = await req.json();
+    const systemPrompt = LESSON_PROMPTS[lesson_mode] || LESSON_PROMPTS.greeting;
+
+    // ── Handle start_session ──────────────────────────────────
+    if (start_session) {
+      const opening = OPENING_MESSAGES[lesson_mode] || OPENING_MESSAGES.greeting;
+
+      const { data: session, error: sessionError } = await adminClient
+        .from("chat_sessions")
+        .insert({ student_id: user.id, lesson_mode })
+        .select("id")
+        .single();
+
+      if (sessionError) throw new Error("Failed to create session: " + sessionError.message);
+
+      const openingText =
+`[JAPANESE]
+${opening.japanese}
+[/JAPANESE]
+
+[ROMAJI]
+${opening.romaji}
+[/ROMAJI]
+
+[NOTE]
+${opening.note}
+[/NOTE]`;
+
+      await adminClient.from("chat_messages").insert({
+        session_id: session.id,
+        role: "assistant",
+        content: openingText,
+      });
+
+      return new Response(
+        JSON.stringify({
+          reply: openingText,
+          session_id: session.id,
+          character: CHARACTER_META[lesson_mode] || CHARACTER_META.greeting,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Regular message flow ──────────────────────────────────
+    if (!message || !lesson_mode) {
+      return new Response(JSON.stringify({ error: "Missing message or lesson_mode" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let sessionId = session_id;
+    if (!sessionId) {
+      const { data: session, error: sessionError } = await adminClient
+        .from("chat_sessions")
+        .insert({ student_id: user.id, lesson_mode })
+        .select("id")
+        .single();
+      if (sessionError) throw new Error("Failed to create session: " + sessionError.message);
+      sessionId = session.id;
+    }
+
+    // Save user message first
+    const { error: userMsgError } = await adminClient
+      .from("chat_messages")
+      .insert({ session_id: sessionId, role: "user", content: message });
+    if (userMsgError) throw new Error("Failed to save user message: " + userMsgError.message);
+
+    // Fetch conversation history
+    const { data: history, error: historyError } = await adminClient
+      .from("chat_messages")
+      .select("role, content")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true })
+      .limit(30);
+    if (historyError) throw new Error("Failed to fetch history: " + historyError.message);
+
+    const messages = (history || []).map((m: any) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    // ── Detect farewell from student ─────────────────────────
+    const FAREWELLS = [
+      "じゃまた", "さようなら", "またね", "またあした", "またこんど",
+      "おやすみ", "しつれいします", "バイバイ", "ばいばい",
+      "jya mata", "ja mata", "sayonara", "sayounara", "mata ne",
+      "bye", "goodbye", "see you", "またね", "またあした"
+    ];
+
+    const studentSaidGoodbye = FAREWELLS.some(f =>
+      message.toLowerCase().includes(f.toLowerCase())
+    );
+
+    // ── Count student messages only ──────────────────────────
+    const studentMsgCount = messages.filter((m: any) => m.role === "user").length;
+    const shouldWrapUp = studentMsgCount >= 10 || studentSaidGoodbye;
+
+    // ── Build system prompt ──────────────────────────────────
+    const wrapUpInstruction = shouldWrapUp ? `
+    === IMPORTANT: SESSION ENDING ===
+    ${studentSaidGoodbye
+      ? "The student has said goodbye. Respond warmly in character with an appropriate farewell from the syllabus. Keep it to one short line only."
+      : "The student has completed 8 or more exchanges. Naturally wrap up the conversation in character with an appropriate farewell from the syllabus vocabulary."
+    }
+    Keep it short. Do not continue the lesson after this.
+    ` : "";
+
+    const finalSystemPrompt = systemPrompt + wrapUpInstruction;
+
+    // Call Groq for conversational reply
+    const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${Deno.env.get("GROQ_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: finalSystemPrompt },
+          ...messages,
+        ],
+        max_tokens: 500,
+        temperature: 0.6,
+      }),
+    });
+
+    if (!groqRes.ok) {
+      const errText = await groqRes.text();
+      console.error("GROQ ERROR:", errText);
+      throw new Error("Groq API error: " + errText);
+    }
+
+    const groqData = await groqRes.json();
+    const reply = groqData?.choices?.[0]?.message?.content ||
+`[JAPANESE]
+すみません
+[/JAPANESE]
+
+[ROMAJI]
+sumimasen
+[/ROMAJI]
+
+[NOTE]
+Sorry, please try again.
+[/NOTE]`;
+
+    // Save assistant message
+    const { error: assistantError } = await adminClient
+      .from("chat_messages")
+      .insert({ session_id: sessionId, role: "assistant", content: reply });
+    if (assistantError) throw new Error("Failed to save assistant message: " + assistantError.message);
+
+    // Update session timestamp
+    await adminClient
+      .from("chat_sessions")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", sessionId);
+
+    // ── Generate feedback if session is ending ───────────────
+    let feedback = null;
+
+    if (shouldWrapUp) {
+      try {
+        // Build a transcript of user messages only for analysis
+        const transcript = messages
+          .filter((m: any) => m.role === "user")
+          .map((m: any, i: number) => `${i + 1}. ${m.content}`)
+          .join("\n");
+
+        const feedbackPrompt = `You are a Japanese language teacher evaluating a beginner student (JFS A0 level) after a conversation practice session.
+
+The student practiced the "${lesson_mode}" scenario. Here are all the student's messages from the session:
+
+${transcript}
+
+IMPORTANT EVALUATION RULES:
+
+1. This is a very early beginner (JFS A0).
+2. Focus primarily on:
+   - correct particle usage (は、の、も、と、で、を、から)
+   - spelling accuracy in hiragana
+   - sentence pattern correctness
+   - correct use of vocabulary from the syllabus
+   - missing or incorrect particles
+   - incorrect word order
+   - incorrect verb forms
+3. Do NOT spend much space praising vocabulary variety or grammar complexity.
+4. Only suggest corrections that are genuinely important for this level.
+5. Ignore advanced Japanese issues that have not been taught in the syllabus.
+6. If the student communicates successfully but makes small mistakes, prioritize the most important mistakes first.
+
+KATAKANA POLICY (VERY IMPORTANT):
+
+1. The student has not learned katakana yet.
+2. DO NOT evaluate katakana usage in any way.
+3. DO NOT:
+    - mention katakana
+    - suggest katakana spellings
+    - compare hiragana and katakana spellings
+    - include katakana-related corrections
+    - include katakana-related feedback
+    - mention that a word is "normally written in katakana"
+4. Treat all katakana loanwords written in hiragana as fully correct for this course. Examples that must be treated as correct:
+    - てれび
+    - らじお
+    - こんぴゅうた
+    - ばどみんとん
+    - さっかあ
+5. If a sentence contains a katakana-related spelling issue, ignore that issue completely and evaluate only:
+    - particles
+    - sentence structure
+    - grammar patterns
+    - hiragana spelling of non-katakana words
+    - vocabulary usage
+6. Never include katakana-related comments in:
+    - vocabulary_notes
+    - grammar_notes
+    - corrections
+    - encouragement
+7. If the only mistake in a sentence is katakana-related, do not generate a correction for that sentence.
+
+Respond ONLY with a valid JSON object in this exact format (no markdown, no extra text):
+
+{
+  "vocabulary_notes": "1-2 sentences focused on whether vocabulary was used correctly and appropriately. Do not praise vocabulary variety. When pointing out mistakes, show examples.",
+  "grammar_notes": "2-4 sentences focused mainly on particles, spelling, sentence patterns, and correctness. When pointing out mistakes, show examples.",
+  "effort_notes": "1 short sentence about participation and effort.",
+  "corrections": [
+    {
+      "original": "what student wrote",
+      "corrected": "correct form, NO English, NO brief explanation",
+      "explanation": "brief explanation focused on particles, spelling, or pattern usage"
+    }
+  ],
+  "encouragement": "1 short sentence encouraging further practice"
+}
+
+CORRECTIONS RULES:
+1. Only create corrections for:
+    - particle mistakes
+    - sentence pattern mistakes
+    - incorrect verb forms
+    - significant hiragana spelling mistakes
+    - incorrect vocabulary usage
+2. Never create a correction involving katakana.
+3. If fewer than 2 meaningful corrections exist, return fewer corrections.
+4. It is better to return an empty corrections array than to create a katakana-related correction.
+
+The tone should be supportive but instructional. If the student wrote mostly in English, note that and encourage them to try more Japanese next time. Focus on correctness, not praise.`;
+
+        const feedbackRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("GROQ_API_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: feedbackPrompt }],
+            max_tokens: 800,
+            temperature: 0.4,
+          }),
+        });
+
+        if (feedbackRes.ok) {
+          const feedbackData = await feedbackRes.json();
+          const feedbackRaw = feedbackData?.choices?.[0]?.message?.content || "";
+
+          // Strip markdown fences if present
+          const cleaned = feedbackRaw.replace(/```json|```/g, "").trim();
+          feedback = JSON.parse(cleaned);
+
+          // Save feedback to database
+          await adminClient.from("session_feedback").insert({
+            session_id: sessionId,
+            student_id: user.id,
+            lesson_mode,
+            vocabulary_notes: feedback.vocabulary_notes,
+            grammar_notes: feedback.grammar_notes,
+            effort_notes: feedback.effort_notes,
+            corrections: feedback.corrections,
+            encouragement: feedback.encouragement,
+          });
+        }
+      } catch (feedbackErr) {
+        console.error("FEEDBACK ERROR:", feedbackErr);
+        // Non-fatal — session still completes even if feedback fails
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        reply,
+        session_id: sessionId,
+        character: CHARACTER_META[lesson_mode] || CHARACTER_META.greeting,
+        feedback,
+        session_complete: shouldWrapUp,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+
+  } catch (err) {
+    console.error("CHAT ERROR:", err);
+    return new Response(
+      JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+});
