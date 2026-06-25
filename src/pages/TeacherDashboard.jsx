@@ -19,6 +19,7 @@ export default function TeacherDashboard() {
   const [lessonStats, setLessonStats]   = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [totalSessions, setTotalSessions] = useState(null);
   const [levelFilter, setLevelFilter]   = useState("all");
   const [historyStudent, setHistoryStudent] = useState(null);
   const [sessions, setSessions]         = useState([]);
@@ -81,8 +82,21 @@ export default function TeacherDashboard() {
       setLoadingStats(false);
     };
 
+    const fetchTotalSessions = async () => {
+      const { data } = await supabase
+        .from("teacher_lesson_stats")
+        .select("session_count")
+        .eq("teacher_id", profile.id);
+
+      if (data) {
+        const total = data.reduce((sum, row) => sum + (row.session_count || 0), 0);
+        setTotalSessions(total);
+      }
+    };
+
     fetchStudents();
     fetchLessonStats();
+    fetchTotalSessions();
   }, [profile?.id]);
 
   // Compute level counts for stats
@@ -320,7 +334,7 @@ export default function TeacherDashboard() {
           background: white; border: 1.5px solid var(--mist); border-radius: 8px;
           padding: 14px 18px; display: flex; align-items: center; gap: 12px;
         }
-        .ls-kana { font-family: 'Noto Serif JP', serif; font-size: 0.85rem; color: var(--teal); width: 90px; flex-shrink: 0; }
+        .ls-kana { font-family: 'Noto Serif JP', serif; font-size: 0.80rem; color: var(--teal); width: 90px; flex-shrink: 0; }
         .ls-label { font-family: 'DM Sans', sans-serif; font-size: 0.87rem; color: var(--charcoal); flex: 1; }
         .ls-count { font-family: 'Shippori Mincho', serif; font-size: 1.1rem; color: var(--ink); font-weight: 600; }
         .ls-unit { font-family: 'DM Sans', sans-serif; font-size: 0.72rem; color: #8ab0b0; margin-left: 3px; }
@@ -367,7 +381,7 @@ export default function TeacherDashboard() {
               { value: loadingStudents ? "…" : String(students.length), label: "Students", accent: false },
               { value: loadingStudents ? "…" : String(Object.keys(levelCounts).length), label: "Levels Active", accent: true },
               { value: loadingStudents ? "…" : levelRange, label: "Level Range", accent: false },
-              { value: "—", label: "Sessions Total", accent: false },
+              { value: totalSessions === null ? "…" : String(totalSessions), label: "Sessions Total", accent: false },
             ].map(s => (
               <div className="stat-card" key={s.label}>
                 <span className={`stat-value ${s.accent ? "stat-accent" : ""}`}>{s.value}</span>
