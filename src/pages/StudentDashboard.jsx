@@ -2,11 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const lessons = [
-  { id: "greeting",   emoji: "👋", label: "Greetings",        kana: "あいさつ",       color: "#d4697a" },
+  { id: "greeting",   emoji: "👋", label: "Greetings",         kana: "あいさつ",       color: "#d4697a" },
   { id: "self_intro", emoji: "🙋", label: "Self Introduction", kana: "じこしょうかい", color: "#4a7ab0" },
-  { id: "shopping",   emoji: "❓", label: "Enquiry",           kana: "しつもん",       color: "#4a9090" },
-  { id: "food",       emoji: "🍜", label: "Restaurant",        kana: "レストラン",     color: "#c09050" },
-  { id: "directions", emoji: "📞", label: "Invitation",        kana: "さそい",         color: "#7a7abf" },
+  { id: "enquiry",    emoji: "❓", label: "Enquiry",           kana: "しつもん",       color: "#4a9090" },
+  { id: "restaurant", emoji: "🍜", label: "Restaurant",        kana: "レストラン",     color: "#c09050" },
+  { id: "invitation", emoji: "📞", label: "Invitation",        kana: "さそい",         color: "#7a7abf" },
 ];
 
 export default function StudentDashboard() {

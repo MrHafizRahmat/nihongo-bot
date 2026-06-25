@@ -7,24 +7,24 @@ import { parseResponse, kanaToRomaji } from "../lib/japaneseUtils";
 const LESSONS = [
   { id: "greeting",   emoji: "👋", label: "Greetings",          kana: "あいさつ" },
   { id: "self_intro", emoji: "🙋", label: "Self Introduction",   kana: "じこしょうかい" },
-  { id: "shopping",   emoji: "❓", label: "Enquiry",             kana: "しつもん" },
-  { id: "food",       emoji: "🍜", label: "Restaurant",          kana: "レストラン" },
-  { id: "directions", emoji: "📞", label: "Invitation",          kana: "さそい" },
+  { id: "enquiry",   emoji: "❓", label: "Enquiry",             kana: "しつもん" },
+  { id: "restaurant",       emoji: "🍜", label: "Restaurant",          kana: "レストラン" },
+  { id: "invitation", emoji: "📞", label: "Invitation",          kana: "さそい" },
 ];
 
 const CHARACTER_PROFILES = {
-  greeting:   { name: "やまだ ゆい", nameEn: "Yamada Yui",   initial: "ゆ", age: "にじゅっさい", role: "おちゃのみずじょしだいがく にねんせい", traits: "あにめ · ばれーぼーる · YOASOBI", color: "#d4697a", scene: "📍 Campus — Greetings practice", desc: "Practice everyday greetings with ゆい — こんにちは、おげんきですか and more." },
+  greeting:   { name: "やまだ ゆい", nameEn: "Yamada Yui",   initial: "ゆ", age: "はたち", role: "おちゃのみずじょしだいがく にねんせい", traits: "あにめ · ばれーぼーる · らーめん", color: "#d4697a", scene: "📍 Campus — Greetings practice", desc: "Practice everyday greetings with ゆい — こんにちは、おげんきですか and more." },
   self_intro: { name: "たなか けんじ", nameEn: "Tanaka Kenji", initial: "け", age: "にじゅうにさい", role: "とうきょうだいがく よねんせい (せんぱい)", traits: "おんがく · えいが · おおさかしゅっしん", color: "#4a7ab0", scene: "📍 University orientation", desc: "Introduce yourself to けんじ — name, hometown, major, and hobbies." },
-  shopping:   { name: "すずき はな",  nameEn: "Suzuki Hana",  initial: "は", age: "さんじゅうごさい", role: "コンビニ てんいん", traits: "ななねんのけいけん · よこはましゅっしん", color: "#4a9090", scene: "📍 Convenience store — Enquiry practice", desc: "Practice asking 'what is this?' and 'whose is this?' with はな." },
-  food:       { name: "さとう りょう", nameEn: "Sato Ryo",    initial: "り", age: "にじゅうはっさい", role: "にほんりょうりレストラン てんいん", traits: "ふくおかしゅっしん · りょうりずき", color: "#c09050", scene: "📍 Japanese restaurant", desc: "Order food and drinks from りょう using 〇〇をください and syllabus food vocabulary." },
-  directions: { name: "きむら あおい", nameEn: "Kimura Aoi",  initial: "あ", age: "じゅうきゅうさい", role: "わせだだいがく いちねんせい", traits: "ながのしゅっしん · はずかしがりや · まじめ", color: "#7a7abf", scene: "📍 Phone call — Invitation practice", desc: "あおい calls to invite you to an activity. Accept or politely decline!" },
+  enquiry:    { name: "すずき はな",  nameEn: "Suzuki Hana",  initial: "は", age: "さんじゅうごさい", role: "コンビニ てんいん", traits: "ななねんのけいけん · よこはましゅっしん", color: "#4a9090", scene: "📍 Convenience store — Enquiry practice", desc: "Practice asking 'what is this?' and 'whose is this?' with はな." },
+  restaurant: { name: "さとう りょう", nameEn: "Sato Ryo",    initial: "り", age: "にじゅうはっさい", role: "にほんりょうりレストラン てんいん", traits: "ふくおかしゅっしん · りょうりずき", color: "#c09050", scene: "📍 Japanese restaurant", desc: "Order food and drinks from りょう using 〇〇をください and syllabus food vocabulary." },
+  invitation: { name: "きむら あおい", nameEn: "Kimura Aoi",  initial: "あ", age: "じゅうきゅうさい", role: "わせだだいがく いちねんせい", traits: "ながのしゅっしん · はずかしがりや · まじめ", color: "#7a7abf", scene: "📍 Phone call — Invitation practice", desc: "あおい calls to invite you to an activity. Accept or politely decline!" },
 };
 
 // ── Feedback card ────────────────────────────────────────────
 function FeedbackCard({ feedback, lessonMode }) {
   const LESSON_LABELS = {
     greeting: "Greetings", self_intro: "Self Introduction",
-    shopping: "Enquiry", food: "Restaurant", directions: "Invitation",
+    enquiry: "Enquiry", restaurant: "Restaurant", invitation: "Invitation",
   };
 
   return (

@@ -299,9 +299,9 @@ export default function TeacherMaterials() {
                     <option value="all">All Lessons (General)</option>
                     <option value="greeting">👋 Greetings</option>
                     <option value="self_intro">🙋 Self Introduction</option>
-                    <option value="shopping">🛒 Shopping</option>
-                    <option value="food">🍱 Ordering Food</option>
-                    <option value="directions">🗺️ Directions</option>
+                    <option value="enquiry">❓ Enquiry</option>
+                    <option value="restaurant">🍜 Restaurant</option>
+                    <option value="invitation">📞 Invitation</option>
                   </select>
                 </div>
 

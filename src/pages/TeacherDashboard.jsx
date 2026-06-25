@@ -4,11 +4,11 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 
 const LESSON_META = {
-  greeting:   { label: "Greetings",        kana: "あいさつ" },
+  greeting:   { label: "Greetings",         kana: "あいさつ" },
   self_intro: { label: "Self Introduction", kana: "じこしょうかい" },
-  shopping:   { label: "Shopping",          kana: "かいもの" },
-  food:       { label: "Ordering Food",     kana: "たべもの" },
-  directions: { label: "Directions",        kana: "みちあんない" },
+  enquiry:    { label: "Enquiry",           kana: "しつもん" },
+  restaurant: { label: "Restaurant",        kana: "レストラン" },
+  invitation: { label: "Invitation",        kana: "さそい" },
 };
 
 export default function TeacherDashboard() {
@@ -133,7 +133,7 @@ export default function TeacherDashboard() {
 
   const LESSON_COLORS = {
     greeting: "#d4697a", self_intro: "#4a7ab0",
-    shopping: "#4a9090", food: "#c09050", directions: "#7a7abf",
+    enquiry: "#4a9090", restaurant: "#c09050", invitation: "#7a7abf",
   };
 
   const filteredStudents = levelFilter === "all"
@@ -499,7 +499,7 @@ export default function TeacherDashboard() {
                     return (
                       <div key={s.id} className={`hp-session-item ${activeSession?.id === s.id ? "active" : ""}`} onClick={() => openSession(s)}>
                         <div className="hp-session-mode" style={{ color }}>
-                          <span>{s.lesson_mode === "greeting" ? "👋" : s.lesson_mode === "self_intro" ? "🙋" : s.lesson_mode === "shopping" ? "🛒" : s.lesson_mode === "food" ? "🍱" : "🗺️"}</span>
+                          <span>{s.lesson_mode === "greeting" ? "👋" : s.lesson_mode === "self_intro" ? "🙋" : s.lesson_mode === "enquiry" ? "❓" : s.lesson_mode === "restaurant" ? "🍜" : "📞"}</span>
                           {meta.label || s.lesson_mode}
                         </div>
                         <div className="hp-session-date">{new Date(s.updated_at || s.created_at).toLocaleDateString("en-MY", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
